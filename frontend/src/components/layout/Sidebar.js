@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { ChevronRight, Home, Users, CheckSquare, List, Calendar, FileText, Settings, LogOut, Menu, X, Building2, MessageSquare, CreditCard, ClipboardCheck } from 'lucide-react';
+import { ChevronRight, Home, Users, CheckSquare, List, Calendar, FileText, Settings, LogOut, Menu, X, Building2, MessageSquare, ClipboardCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const NAV_GROUPS = [

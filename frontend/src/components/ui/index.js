@@ -190,42 +190,62 @@ export function StatCard({ title, value, icon, color = 'primary', delta, subtitl
   );
 }
 
-export function Table({ columns, data, loading, onRow }) {
+export function Table({ columns, data, loading, onRow, paginate = false, pageSize = 10 }) {
+  const [currentPage, setCurrentPage] = React.useState(1);
+
   if (loading) return (
     <div className="flex justify-center py-12"><Spinner size="lg" className="text-brand-primary" /></div>
   );
+
+  const displayData = (paginate && data) ? data.slice((currentPage - 1) * pageSize, currentPage * pageSize) : data;
+  const totalPages = (paginate && data) ? Math.ceil(data.length / pageSize) : 1;
+
   return (
-    <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
-      <table className="w-full text-sm text-left">
-        <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 text-xs font-semibold uppercase tracking-wider">
-          <tr>
-            {columns?.map(c => (
-              <th key={c.key} className="px-6 py-3 whitespace-nowrap">
-                {c.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100 bg-white">
-          {data?.map((row, i) => (
-            <motion.tr
-              key={row.id || i}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: i * 0.02 }}
-              onClick={() => onRow && onRow(row)}
-              className={`${onRow ? 'cursor-pointer hover:bg-gray-50' : ''} transition-colors group`}
-            >
+    <div className="flex flex-col gap-3">
+      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 text-xs font-semibold uppercase tracking-wider">
+            <tr>
               {columns?.map(c => (
-                <td key={c.key} className="px-6 py-4 text-gray-700 whitespace-nowrap">
-                  {c.render ? c.render(row[c.key], row) : row[c.key] ?? '-'}
-                </td>
+                <th key={c.key} className="px-6 py-3 whitespace-nowrap">
+                  {c.label}
+                </th>
               ))}
-            </motion.tr>
-          ))}
-        </tbody>
-      </table>
-      {(!data || data.length === 0) && <EmptyState title="No records found" description="We couldn't find any data matching your criteria." />}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 bg-white">
+            {displayData?.map((row, i) => (
+              <motion.tr
+                key={row.id || i}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: i * 0.02 }}
+                onClick={() => onRow && onRow(row)}
+                className={`${onRow ? 'cursor-pointer hover:bg-gray-50' : ''} transition-colors group`}
+              >
+                {columns?.map(c => (
+                  <td key={c.key} className="px-6 py-4 text-gray-700 whitespace-nowrap">
+                    {c.render ? c.render(row[c.key], row) : row[c.key] ?? '-'}
+                  </td>
+                ))}
+              </motion.tr>
+            ))}
+          </tbody>
+        </table>
+        {(!data || data.length === 0) && <EmptyState title="No records found" description="We couldn't find any data matching your criteria." />}
+      </div>
+      
+      {paginate && totalPages > 1 && (
+        <div className="flex items-center justify-between px-2">
+          <div className="text-sm text-gray-500">
+            Showing <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> to <span className="font-medium">{Math.min(currentPage * pageSize, data.length)}</span> of <span className="font-medium">{data.length}</span> results
+          </div>
+          <div className="flex gap-1.5">
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Previous</Button>
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

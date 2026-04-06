@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { hostelsAPI, usersAPI } from '../../../services/api';
 import toast from 'react-hot-toast';
 import { Building2, Plus, Pencil, Trash2, X, Check } from 'lucide-react';
-import { Spinner } from '../../../components/ui';
+import { Spinner, Table, Button, Badge, SectionCard } from '../../../components/ui';
 
 const GENDER_LABELS = { MALE: 'Boys Hostel', FEMALE: 'Girls Hostel', COED: 'Co-ed Hostel' };
 const GENDER_COLORS = {
@@ -11,7 +11,7 @@ const GENDER_COLORS = {
   COED:   'bg-purple-50 text-purple-700 border border-purple-200',
 };
 
-const emptyForm = { name: '', block_code: '', gender: 'MALE', total_rooms: '', warden_id: '' };
+const emptyForm = { name: '', block_code: '', gender: 'MALE', total_rooms: '', capacity: '', warden_id: '' };
 
 function StatCard({ label, value, color }) {
   return (
@@ -31,7 +31,7 @@ function HostelModal({ hostel, wardens, onSave, onClose }) {
     if (!form.name.trim()) return toast.error('Hostel name is required');
     setSaving(true);
     try {
-      await onSave({ ...form, total_rooms: Number(form.total_rooms) || 0, warden_id: form.warden_id || null });
+      await onSave({ ...form, total_rooms: Number(form.total_rooms) || 0, capacity: Number(form.capacity) || 0, warden_id: form.warden_id || null });
       onClose();
     } finally { setSaving(false); }
   };
@@ -80,6 +80,14 @@ function HostelModal({ hostel, wardens, onSave, onClose }) {
               <input
                 type="number" min="0" value={form.total_rooms}
                 onChange={e => setForm({ ...form, total_rooms: e.target.value })}
+                className="w-full rounded-xl border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Capacity</label>
+              <input
+                type="number" min="0" value={form.capacity}
+                onChange={e => setForm({ ...form, capacity: e.target.value })}
                 className="w-full rounded-xl border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
               />
             </div>
@@ -147,17 +155,32 @@ export default function AdminHostelsPage() {
   };
 
   const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this hostel?')) return;
     try {
       await hostelsAPI.delete(id);
       toast.success('Hostel removed');
-      setDeleteId(null);
       fetchAll();
     } catch {}
   };
 
+  const columns = [
+    { key: 'name', label: 'Hostel Name', render: (val) => <span className="font-bold text-gray-900">{val}</span> },
+    { key: 'block_code', label: 'Block', render: val => val ? `Block ${val}` : '-' },
+    { key: 'gender', label: 'Gender', render: val => <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${GENDER_COLORS[val] || GENDER_COLORS.COED}`}>{GENDER_LABELS[val] || val}</span> },
+    { key: 'warden_name', label: 'Warden', render: val => val || 'Not assigned' },
+    { key: 'total_rooms', label: 'Total Rooms', render: (val, row) => <span>{val} (Actual: {row.actual_room_count || 0})</span> },
+    { key: 'capacity', label: 'Capacity', render: val => val || 0 },
+    { key: 'actions', label: 'Actions', render: (_, row) => (
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setEditHostel(row); setShowModal(true); }}><Pencil className="w-3.5 h-3.5 mr-1" /> Edit</Button>
+        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleDelete(row.id); }} className="text-red-500 hover:text-red-600"><Trash2 className="w-3.5 h-3.5 mr-1" /> Delete</Button>
+      </div>
+    )}
+  ];
+
   const maleHostels   = hostels.filter(h => h.gender === 'MALE');
   const femaleHostels = hostels.filter(h => h.gender === 'FEMALE');
-  const coedHostels   = hostels.filter(h => h.gender === 'COED');
+  // const coedHostels   = hostels.filter(h => h.gender === 'COED');
   const totalRooms    = hostels.reduce((s, h) => s + (h.actual_room_count || 0), 0);
 
   if (loading) return (
@@ -190,70 +213,10 @@ export default function AdminHostelsPage() {
         <StatCard label="Total Rooms"    value={totalRooms}            color="text-green-600"/>
       </div>
 
-      {/* Hostel Cards */}
-      {hostels.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-brand-border/60 shadow-sm p-14 text-center">
-          <Building2 className="h-12 w-12 mx-auto mb-4 text-gray-200" />
-          <p className="text-sm font-semibold text-gray-600">No hostels added yet</p>
-          <p className="text-xs text-brand-muted mt-1">Click "Add Hostel" to create the first one.</p>
-        </div>
-      ) : (
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {hostels.map(h => (
-            <div key={h.id} className="bg-white rounded-2xl border border-brand-border/60 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-brand-border/40 flex items-center justify-between">
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-gray-900 truncate">{h.name}</p>
-                  {h.block_code && (
-                    <p className="text-xs text-brand-muted mt-0.5">Block {h.block_code}</p>
-                  )}
-                </div>
-                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full flex-shrink-0 ml-2 ${GENDER_COLORS[h.gender] || GENDER_COLORS.COED}`}>
-                  {GENDER_LABELS[h.gender] || h.gender}
-                </span>
-              </div>
-
-              <div className="px-5 py-4 space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-brand-muted">Warden</span>
-                  <span className="font-semibold text-gray-800">{h.warden_name || 'Not assigned'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-brand-muted">Total Rooms</span>
-                  <span className="font-semibold text-gray-800">{h.total_rooms}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-brand-muted">Actual Rooms</span>
-                  <span className="font-semibold text-gray-800">{h.actual_room_count || 0}</span>
-                </div>
-              </div>
-
-              <div className="px-5 py-3 border-t border-brand-border/40 flex gap-2">
-                <button
-                  onClick={() => { setEditHostel(h); setShowModal(true); }}
-                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-brand-primary/30 text-brand-primary hover:bg-brand-primary/5 transition-colors"
-                >
-                  <Pencil className="h-3.5 w-3.5" /> Edit
-                </button>
-                {deleteId === h.id ? (
-                  <div className="flex items-center gap-2 ml-auto">
-                    <span className="text-xs text-red-600 font-semibold">Delete?</span>
-                    <button onClick={() => handleDelete(h.id)} className="text-xs font-bold px-2.5 py-1 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Yes</button>
-                    <button onClick={() => setDeleteId(null)} className="text-xs font-bold px-2.5 py-1 rounded-lg border border-brand-border text-gray-600 hover:bg-gray-50 transition-colors">No</button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setDeleteId(h.id)}
-                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors ml-auto"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" /> Remove
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Hostel Table */}
+      <SectionCard title="Hostels List" description="Complete registry of all campus accommodations.">
+        <Table columns={columns} data={hostels} loading={loading} paginate pageSize={10} />
+      </SectionCard>
 
       {/* Modal */}
       {showModal && (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { studentsAPI, roomsAPI } from '../../../services/api';
+import { studentsAPI, roomsAPI, allocationsAPI } from '../../../services/api';
 import { Input, Select, Textarea, Modal } from '../../../components/ui';
 import BulkUploadModal from '../../../components/ui/BulkUploadModal';
 import { Upload } from 'lucide-react';
@@ -45,6 +45,9 @@ export default function StudentsPage() {
   const [filters, setFilters] = useState({
     dept: '',
     year: '',
+    block: '',
+    floor: '',
+    wing: '',
   });
   const [modal, setModal] = useState(null);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
@@ -57,13 +60,19 @@ export default function StudentsPage() {
   const loadStudents = useCallback(() => {
     setLoading(true);
 
+    const params = {
+      search,
+      dept: filters.dept || undefined,
+      year: filters.year || undefined,
+      page,
+      limit: pageSize,
+    };
+    if (filters.block) params.block = filters.block;
+    if (filters.floor !== '' && filters.floor != null) params.floor = filters.floor;
+    if (filters.wing) params.wing = filters.wing;
+
     studentsAPI
-      .getAll({
-        search,
-        ...filters,
-        page,
-        limit: pageSize,
-      })
+      .getAll(params)
       .then((res) => {
         setStudents(res.data.data || []);
         setTotal(res.data.total || 0);
@@ -93,6 +102,17 @@ export default function StudentsPage() {
       [key]: value,
     }));
   };
+
+  const buildStudentPayload = () => ({
+    name: form.name.trim(),
+    register_no: form.register_no.trim().toUpperCase(),
+    department: form.department,
+    year: Number(form.year),
+    phone: form.phone.trim(),
+    email: form.email.trim(),
+    address: form.address.trim(),
+    joined_date: form.joined_date || null,
+  });
 
   const openAdd = () => {
     setSelected(null);
@@ -136,14 +156,31 @@ export default function StudentsPage() {
   };
 
   const handleSave = async () => {
+    const payload = buildStudentPayload();
+
+    if (!payload.name || !payload.register_no || !payload.department || !payload.year) {
+      toast.error('Name, register number, department, and year are required.');
+      return;
+    }
+
+    if (payload.phone && !/^\d{10}$/.test(payload.phone)) {
+      toast.error('Phone number must be exactly 10 digits.');
+      return;
+    }
+
+    if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+      toast.error('Enter a valid email address.');
+      return;
+    }
+
     setSaving(true);
 
     try {
       if (modal === 'add') {
-        await studentsAPI.create(form);
+        await studentsAPI.create(payload);
         toast.success('Student added successfully.');
       } else if (modal === 'edit' && selected?.id) {
-        await studentsAPI.update(selected.id, form);
+        await studentsAPI.update(selected.id, payload);
         toast.success('Student updated successfully.');
       }
 
@@ -192,7 +229,6 @@ export default function StudentsPage() {
 
     setSaving(true);
     try {
-      const { allocationsAPI } = await import('../services/api');
       await allocationsAPI.allocate({
         student_id: selected.id,
         room_id: Number(allotRoomId),
@@ -356,7 +392,10 @@ export default function StudentsPage() {
               borderColor: '#D8DCF0',
             }}
           >
-            <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr_1fr] gap-3">
+            <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: COLORS.secondarytext }}>
+              Filter students
+            </p>
+            <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_1fr] gap-3">
               <div className="relative">
                 <span
                   className="absolute left-4 top-1/2 -translate-y-1/2 text-sm"
@@ -423,6 +462,75 @@ export default function StudentsPage() {
                 ))}
               </select>
 
+              <select
+                value={filters.block}
+                onChange={(e) => {
+                  setFilters((prev) => ({ ...prev, block: e.target.value }));
+                  setPage(1);
+                }}
+                className="rounded-xl px-4 py-3 text-sm outline-none border"
+                style={{
+                  backgroundColor: COLORS.secondarybg,
+                  borderColor: '#D8DCF0',
+                  color: COLORS.primarytext,
+                }}
+              >
+                <option value="">All blocks</option>
+                {['A', 'B', 'C', 'D'].map((b) => (
+                  <option key={b} value={b}>
+                    Block {b}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={filters.floor}
+                onChange={(e) => {
+                  setFilters((prev) => ({ ...prev, floor: e.target.value }));
+                  setPage(1);
+                }}
+                className="rounded-xl px-4 py-3 text-sm outline-none border"
+                style={{
+                  backgroundColor: COLORS.secondarybg,
+                  borderColor: '#D8DCF0',
+                  color: COLORS.primarytext,
+                }}
+              >
+                <option value="">All floors</option>
+                {[1, 2, 3, 4, 5].map((f) => (
+                  <option key={f} value={f}>
+                    Floor {f}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold mr-1" style={{ color: COLORS.secondarytext }}>
+                Wing:
+              </span>
+              {[
+                { key: '', label: 'All wings' },
+                { key: 'left', label: 'Show Left Wing' },
+                { key: 'right', label: 'Show Right Wing' },
+              ].map(({ key, label }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => {
+                    setFilters((prev) => ({ ...prev, wing: key }));
+                    setPage(1);
+                  }}
+                  className="rounded-xl px-3 py-2 text-xs font-semibold border transition-all"
+                  style={{
+                    borderColor: filters.wing === key ? COLORS.primary : '#D8DCF0',
+                    backgroundColor: filters.wing === key ? 'rgba(125,83,246,0.08)' : COLORS.secondarybg,
+                    color: COLORS.primarytext,
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -434,7 +542,7 @@ export default function StudentsPage() {
             }}
           >
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1100px] text-sm">
+              <table className="w-full min-w-[1200px] text-sm">
                 <thead>
                   <tr style={{ backgroundColor: COLORS.primarybg }}>
                     {[
@@ -442,6 +550,8 @@ export default function StudentsPage() {
                       'Student Name',
                       'Department & Year',
                       'Room',
+                      'Floor',
+                      'Wing',
                       'Phone',
                       'Actions',
                     ].map((head) => (
@@ -463,7 +573,7 @@ export default function StudentsPage() {
                   {loading ? (
                     <tr>
                       <td
-                        colSpan="6"
+                        colSpan="8"
                         className="text-center py-12"
                         style={{ color: COLORS.secondarytext }}
                       >
@@ -473,7 +583,7 @@ export default function StudentsPage() {
                   ) : students.length === 0 ? (
                     <tr>
                       <td
-                        colSpan="6"
+                        colSpan="8"
                         className="text-center py-12"
                         style={{ color: COLORS.secondarytext }}
                       >
@@ -519,20 +629,45 @@ export default function StudentsPage() {
                         </td>
 
                         <td className="px-5 py-4" style={{ color: COLORS.secondarytext }}>
-                          {student.department} • Year {student.year}
+                          {student.department} | Year {student.year}
                         </td>
 
                         <td className="px-5 py-4">
                           {student.room_number
                             ? `${student.block?.[0] || ''}-${student.room_number}`
-                            : '—'}
+                            : '-'}
+                        </td>
+
+                        <td className="px-5 py-4" style={{ color: COLORS.secondarytext }}>
+                          {student.effective_floor ?? student.floor ?? student.room_floor ?? '—'}
+                        </td>
+
+                        <td className="px-5 py-4">
+                          {student.effective_wing || student.wing || student.room_wing ? (
+                            <span
+                              className="inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold capitalize border"
+                              style={{
+                                borderColor: '#D8DCF0',
+                                backgroundColor:
+                                  String(student.effective_wing || student.wing || student.room_wing).toLowerCase() ===
+                                  'left'
+                                    ? 'rgba(16,185,129,0.12)'
+                                    : 'rgba(139,92,246,0.12)',
+                                color: COLORS.primarytext,
+                              }}
+                            >
+                              {student.effective_wing || student.wing || student.room_wing}
+                            </span>
+                          ) : (
+                            '—'
+                          )}
                         </td>
 
                         <td
                           className="px-5 py-4 font-mono text-[12px]"
                           style={{ color: COLORS.secondarytext }}
                         >
-                          {student.phone || '—'}
+                          {student.phone || '-'}
                         </td>
 
                         <td className="px-5 py-4">
@@ -597,7 +732,7 @@ export default function StudentsPage() {
                 style={{ borderColor: '#D8DCF0' }}
               >
                 <p className="text-sm" style={{ color: COLORS.secondarytext }}>
-                  Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of{' '}
+                  Showing {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, total)} of{' '}
                   {total}
                 </p>
 
@@ -665,7 +800,7 @@ export default function StudentsPage() {
         title={modal === 'add' ? 'Add New Student' : 'Edit Student'}
         size="lg"
       >
-        <FormBody />
+        {FormBody()}
 
         <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-[#D8DCF0]">
           <button
@@ -833,7 +968,7 @@ export default function StudentsPage() {
                 <option value="">Choose a room</option>
                 {rooms.map((room) => (
                   <option key={room.id} value={room.id}>
-                    {room.room_number} (Block {room.block}) • {room.occupied}/
+                    {room.room_number} (Block {room.block}) | {room.occupied}/
                     {room.capacity} occupied
                   </option>
                 ))}

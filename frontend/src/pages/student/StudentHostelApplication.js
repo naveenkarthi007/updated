@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { hostelApplicationsAPI } from '../../services/api';
-import { Badge, Button, Select, Textarea, PanelShell, PortalHero, EmptyState, Spinner } from '../../components/ui';
+import { Badge, Button, Select, PanelShell, PortalHero, EmptyState, Spinner } from '../../components/ui';
 import { format } from 'date-fns';
 import { BuildingIcon, FileTextIcon, CheckCircle2, Clock, XCircle } from 'lucide-react';
 

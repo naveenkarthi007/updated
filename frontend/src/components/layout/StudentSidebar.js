@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { ChevronRight, Bell, ClipboardList, LayoutGrid, LogOut, Menu, UserRound, X, Building2, CalendarRange, RefreshCcw, Coffee, Users, UserPlus, BedDouble, CreditCard } from 'lucide-react';
+import { ChevronRight, Bell, ClipboardList, LayoutGrid, LogOut, Menu, UserRound, X, Building2, CalendarRange, RefreshCcw, Coffee, Users, UserPlus, BedDouble } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const NAV_GROUPS = [

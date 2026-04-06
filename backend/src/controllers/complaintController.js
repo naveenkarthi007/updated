@@ -21,7 +21,7 @@ const getAll = async (req, res) => {
     );
     const [[{total}]] = await pool.query(`SELECT COUNT(*) as total FROM complaints c WHERE ${where}`, params);
     res.json({ success: true, data: rows, total, page: parseInt(page) });
-  } catch (err) { console.error('Error in ' + __filename + ':', err); res.status(500).json({ success: false, message: 'Server error.' }); }
+  } catch (err) { console.error('Error in ' + __filename + ':', err); return res.status(500).json({ success: false, message: 'Server error.' }); }
 };
 
 const create = async (req, res) => {
@@ -43,7 +43,7 @@ const create = async (req, res) => {
       id: result.insertId,
       assigned_to: staff,
     });
-  } catch (err) { console.error('Error in ' + __filename + ':', err); res.status(500).json({ success: false, message: 'Server error.' }); }
+  } catch (err) { console.error('Error in ' + __filename + ':', err); return res.status(500).json({ success: false, message: 'Server error.' }); }
 };
 
 const updateStatus = async (req, res) => {
@@ -60,14 +60,14 @@ const updateStatus = async (req, res) => {
     params.push(req.params.id);
     await pool.query(`UPDATE complaints SET ${fields.join(',')} WHERE id=?`, params);
     res.json({ success: true, message: 'Complaint updated.' });
-  } catch (err) { console.error('Error in ' + __filename + ':', err); res.status(500).json({ success: false, message: 'Server error.' }); }
+  } catch (err) { console.error('Error in ' + __filename + ':', err); return res.status(500).json({ success: false, message: 'Server error.' }); }
 };
 
 const remove = async (req, res) => {
   try {
     await pool.query('DELETE FROM complaints WHERE id=?', [req.params.id]);
     res.json({ success: true, message: 'Complaint deleted.' });
-  } catch (err) { console.error('Error in ' + __filename + ':', err); res.status(500).json({ success: false, message: 'Server error.' }); }
+  } catch (err) { console.error('Error in ' + __filename + ':', err); return res.status(500).json({ success: false, message: 'Server error.' }); }
 };
 
 module.exports = { getAll, create, updateStatus, remove };

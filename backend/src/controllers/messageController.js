@@ -1,8 +1,54 @@
 const { pool } = require('../config/database');
 
+let wardenMessagesTableReady = false;
+
+/**
+ * Ensures `warden_messages` exists (fresh schema / migrate_new_features) and legacy tables
+ * have `is_to_all_wardens`. Runs once per process after first message-route hit.
+ */
+const ensureWardenMessagesTable = async () => {
+  if (wardenMessagesTableReady) return;
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS warden_messages (
+      id              INT AUTO_INCREMENT PRIMARY KEY,
+      sender_id       INT NOT NULL,
+      receiver_id     INT DEFAULT NULL,
+      title           VARCHAR(200) NOT NULL,
+      description     TEXT NOT NULL,
+      priority        ENUM('LOW','MEDIUM','HIGH') DEFAULT 'MEDIUM',
+      status          ENUM('SENT','SEEN','RESOLVED') DEFAULT 'SENT',
+      is_to_all_wardens TINYINT(1) DEFAULT 0,
+      admin_reply     TEXT DEFAULT NULL,
+      created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE SET NULL,
+      INDEX idx_wm_sender (sender_id),
+      INDEX idx_wm_receiver (receiver_id),
+      INDEX idx_wm_status (status),
+      INDEX idx_wm_created_at (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  const [cols] = await pool.query(
+    `SELECT 1 AS ok FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'warden_messages' AND COLUMN_NAME = 'is_to_all_wardens'
+     LIMIT 1`
+  );
+  if (!cols.length) {
+    await pool.query(
+      `ALTER TABLE warden_messages ADD COLUMN is_to_all_wardens TINYINT(1) DEFAULT 0 AFTER status`
+    );
+  }
+
+  wardenMessagesTableReady = true;
+};
+
 // ── Warden: Send message to admin ────────────────────────────
 const wardenSendMessage = async (req, res) => {
   try {
+    await ensureWardenMessagesTable();
     if (req.user.role !== 'warden') {
       return res.status(403).json({ success: false, message: 'Only wardens can send messages to admin.' });
     }
@@ -26,6 +72,7 @@ const wardenSendMessage = async (req, res) => {
 // ── Warden: Get sent messages ─────────────────────────────────
 const wardenGetSent = async (req, res) => {
   try {
+    await ensureWardenMessagesTable();
     if (req.user.role !== 'warden') {
       return res.status(403).json({ success: false, message: 'Access denied.' });
     }
@@ -47,6 +94,7 @@ const wardenGetSent = async (req, res) => {
 // ── Warden: Get received messages (from admin) ────────────────
 const wardenGetReceived = async (req, res) => {
   try {
+    await ensureWardenMessagesTable();
     if (req.user.role !== 'warden') {
       return res.status(403).json({ success: false, message: 'Access denied.' });
     }
@@ -82,6 +130,7 @@ const wardenGetReceived = async (req, res) => {
 // ── Admin: Get all messages ───────────────────────────────────
 const adminGetAllMessages = async (req, res) => {
   try {
+    await ensureWardenMessagesTable();
     const [messages] = await pool.query(
       `SELECT wm.*,
               s.name as sender_name, s.email as sender_email, s.role as sender_role,
@@ -101,6 +150,7 @@ const adminGetAllMessages = async (req, res) => {
 // ── Admin: Send message to warden(s) ─────────────────────────
 const adminSendMessage = async (req, res) => {
   try {
+    await ensureWardenMessagesTable();
     const { warden_id, title, description, priority = 'MEDIUM', is_to_all_wardens = false } = req.body;
     if (!title || !description) {
       return res.status(400).json({ success: false, message: 'Title and description are required.' });
@@ -124,6 +174,7 @@ const adminSendMessage = async (req, res) => {
 // ── Admin: Update message status / reply ─────────────────────
 const adminUpdateMessage = async (req, res) => {
   try {
+    await ensureWardenMessagesTable();
     const { status, admin_reply } = req.body;
     const [[existing]] = await pool.query('SELECT * FROM warden_messages WHERE id=?', [req.params.id]);
     if (!existing) {
@@ -161,6 +212,7 @@ const adminUpdateMessage = async (req, res) => {
 // ── Mark message as seen ──────────────────────────────────────
 const markSeen = async (req, res) => {
   try {
+    await ensureWardenMessagesTable();
     const [[msg]] = await pool.query('SELECT * FROM warden_messages WHERE id=?', [req.params.id]);
     if (!msg) return res.status(404).json({ success: false, message: 'Message not found.' });
     await pool.query("UPDATE warden_messages SET status='SEEN', updated_at=NOW() WHERE id=?", [req.params.id]);
@@ -174,6 +226,7 @@ const markSeen = async (req, res) => {
 // ── Admin: Delete message ─────────────────────────────────────
 const adminDeleteMessage = async (req, res) => {
   try {
+    await ensureWardenMessagesTable();
     const [[msg]] = await pool.query('SELECT * FROM warden_messages WHERE id=?', [req.params.id]);
     if (!msg) return res.status(404).json({ success: false, message: 'Message not found.' });
     await pool.query('DELETE FROM warden_messages WHERE id=?', [req.params.id]);

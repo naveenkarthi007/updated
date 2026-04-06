@@ -15,7 +15,10 @@ const allocate = async (req, res) => {
     if (room.occupied >= room.capacity) throw new Error('Room is fully occupied.');
     if (room.status === 'maintenance') throw new Error('Room is under maintenance.');
 
-    await conn.query('UPDATE students SET room_id=? WHERE id=?', [room_id, student_id]);
+    await conn.query(
+      'UPDATE students SET room_id=?, floor=?, wing=? WHERE id=?',
+      [room_id, room.floor, room.wing ?? null, student_id]
+    );
     const newOccupied = room.occupied + 1;
     const newStatus = newOccupied >= room.capacity ? 'occupied' : 'available';
     await conn.query('UPDATE rooms SET occupied=?,status=? WHERE id=?', [newOccupied, newStatus, room_id]);
@@ -36,7 +39,7 @@ const vacate = async (req, res) => {
     const [[student]] = await conn.query('SELECT * FROM students WHERE id=?', [student_id]);
     if (!student || !student.room_id) throw new Error('Student has no room allocated.');
     const room_id = student.room_id;
-    await conn.query('UPDATE students SET room_id=NULL WHERE id=?', [student_id]);
+    await conn.query('UPDATE students SET room_id=NULL, floor=NULL, wing=NULL WHERE id=?', [student_id]);
     const [[room]] = await conn.query('SELECT * FROM rooms WHERE id=?', [room_id]);
     const newOccupied = Math.max(0, room.occupied - 1);
     const newStatus = newOccupied === 0 ? 'available' : newOccupied < room.capacity ? 'available' : 'occupied';

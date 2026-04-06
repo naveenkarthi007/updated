@@ -1,6 +1,7 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
+/* eslint-disable no-undef */
 const api = axios.create({ baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api', timeout: 10000 });
 
 api.interceptors.request.use(config => {
@@ -51,6 +52,7 @@ export const wardenAPI = {
   getStats:    ()  => api.get('/warden/dashboard'),
   getStudents: (p) => api.get('/warden/students', { params: p }),
   getComplaints: (p) => api.get('/warden/complaints', { params: p }),
+  getMyScope:  ()  => api.get('/warden/my-scope'),
 };
 
 export const studentsAPI = {

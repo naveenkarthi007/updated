@@ -3,10 +3,11 @@ const { Parser } = require('json2csv');
 
 const getAll = async (req, res) => {
   try {
-    const { block, status } = req.query;
+    const { block, status, hostel_id } = req.query;
     let where = '1=1'; const params = [];
     if (block)  { where += ' AND block=?'; params.push(block); }
     if (status) { where += ' AND status=?'; params.push(status); }
+    if (hostel_id) { where += ' AND hostel_id=?'; params.push(hostel_id); }
     const [rows] = await pool.query(`SELECT * FROM rooms WHERE ${where} ORDER BY block,floor,room_number`, params);
     res.json({ success: true, data: rows });
   } catch (err) { console.error('Error in ' + __filename + ':', err); res.status(500).json({ success: false, message: 'Server error.' }); }
@@ -22,13 +23,14 @@ const getOne = async (req, res) => {
 };
 
 const create = async (req, res) => {
-  const { room_number, block, floor, capacity, room_type } = req.body;
+  const { room_number, block, floor, wing, capacity, room_type, hostel_name, hostel_id } = req.body;
   if (!room_number || !block || !floor || !capacity)
     return res.status(400).json({ success: false, message: 'room_number, block, floor, capacity required.' });
   try {
+    const status = 'available'; // New room is always available
     const [result] = await pool.query(
-      'INSERT INTO rooms (room_number,block,floor,capacity,room_type) VALUES (?,?,?,?,?)',
-      [room_number,block,floor,capacity,room_type||'triple']
+      'INSERT INTO rooms (room_number,block,floor,wing,capacity,room_type,hostel_name,hostel_id,status,occupied) VALUES (?,?,?,?,?,?,?,?,?,?)',
+      [room_number, block, floor, wing || null, capacity, room_type || 'triple', hostel_name || null, hostel_id || null, status, 0]
     );
     res.status(201).json({ success: true, message: 'Room created.', id: result.insertId });
   } catch (err) {
@@ -38,10 +40,33 @@ const create = async (req, res) => {
 };
 
 const update = async (req, res) => {
-  const { capacity, room_type, status } = req.body;
+  const { capacity, room_type, wing, hostel_name, hostel_id } = req.body;
+  let { status } = req.body;
   try {
-    await pool.query('UPDATE rooms SET capacity=?,room_type=?,status=? WHERE id=?',
-      [capacity,room_type,status,req.params.id]);
+    // Automatically recalculate status if not explicitly overriden to maintenance
+    const [[room]] = await pool.query('SELECT occupied FROM rooms WHERE id=?', [req.params.id]);
+    if (room && status !== 'maintenance') {
+      const occ = room.occupied || 0;
+      status = (occ >= capacity) ? 'occupied' : 'available';
+    }
+
+    let sql = 'UPDATE rooms SET capacity=?, room_type=?, status=?';
+    const params = [capacity, room_type, status];
+    if (Object.prototype.hasOwnProperty.call(req.body, 'wing')) {
+      sql += ', wing=?';
+      params.push(wing || null);
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, 'hostel_name')) {
+      sql += ', hostel_name=?';
+      params.push(hostel_name || null);
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, 'hostel_id')) {
+      sql += ', hostel_id=?';
+      params.push(hostel_id || null);
+    }
+    sql += ' WHERE id=?';
+    params.push(req.params.id);
+    await pool.query(sql, params);
     res.json({ success: true, message: 'Room updated.' });
   } catch (err) { console.error('Error in ' + __filename + ':', err); res.status(500).json({ success: false, message: 'Server error.' }); }
 };
@@ -58,9 +83,9 @@ const remove = async (req, res) => {
 const exportCSV = async (req, res) => {
   try {
     const [rows] = await pool.query(
-      'SELECT room_number, block, floor, capacity, occupied, room_type, status FROM rooms ORDER BY block, floor, room_number'
+      'SELECT room_number, hostel_name, block, floor, capacity, occupied, room_type, status FROM rooms ORDER BY block, floor, room_number'
     );
-    const parser = new Parser({ fields: ['room_number','block','floor','capacity','occupied','room_type','status'] });
+    const parser = new Parser({ fields: ['room_number','hostel_name','block','floor','capacity','occupied','room_type','status'] });
     const csv = parser.parse(rows);
     res.header('Content-Type', 'text/csv');
     res.attachment('rooms.csv');

@@ -128,4 +128,4 @@ const setAssignments = async (req, res) => {
   }
 };
 
-module.exports = { getWardens, getAssignments, setAssignments };
+module.exports = { getWardens, getAssignments, setAssignments, ensureTable };

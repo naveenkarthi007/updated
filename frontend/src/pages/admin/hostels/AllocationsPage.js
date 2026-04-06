@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { allocationsAPI, studentsAPI, roomsAPI } from '../../../services/api';
+import { allocationsAPI, studentsAPI, roomsAPI, hostelsAPI } from '../../../services/api';
 import { Button, Badge, Select, Modal, Table, PageHeader, SectionCard } from '../../../components/ui';
 import BulkUploadModal from '../../../components/ui/BulkUploadModal';
 import { Upload } from 'lucide-react';
@@ -11,8 +11,10 @@ export default function AllocationsPage() {
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [students, setStudents] = useState([]);
-  const [rooms, setRooms] = useState([]);
-  const [form, setForm] = useState({ student_id: '', room_id: '' });
+  const [hostels, setHostels] = useState([]);
+  const [allRooms, setAllRooms] = useState([]);
+  const [filteredRooms, setFilteredRooms] = useState([]);
+  const [form, setForm] = useState({ student_id: '', hostel_id: '', room_id: '' });
   const [vacateId, setVacateId] = useState('');
   const [saving, setSaving] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
@@ -27,14 +29,30 @@ export default function AllocationsPage() {
   }, []);
 
   const openAllocate = async () => {
-    const [sr, rr] = await Promise.all([
-      studentsAPI.getAll({ limit: 200 }),
+    const [sr, rr, hr] = await Promise.all([
+      studentsAPI.getAll({ limit: 500 }),
       roomsAPI.getAll({ status: 'available' }),
+      hostelsAPI.getAll()
     ]);
     setStudents(sr.data.data.filter(s => !s.room_id));
-    setRooms(rr.data.data.filter(r => r.occupied < r.capacity));
-    setForm({ student_id: '', room_id: '' });
+    
+    const availableRooms = rr.data.data.filter(r => r.occupied < r.capacity);
+    setAllRooms(availableRooms);
+    setFilteredRooms(availableRooms);
+    setHostels(hr.data.hostels || []);
+    
+    setForm({ student_id: '', hostel_id: '', room_id: '' });
     setModal('allocate');
+  };
+
+  const handleHostelChange = (e) => {
+    const val = e.target.value;
+    setForm(f => ({ ...f, hostel_id: val, room_id: '' }));
+    if (val) {
+      setFilteredRooms(allRooms.filter(r => String(r.hostel_id) === String(val)));
+    } else {
+      setFilteredRooms(allRooms);
+    }
   };
 
   const openVacate = async () => {
@@ -113,7 +131,7 @@ export default function AllocationsPage() {
       />
 
       <SectionCard title="Allocation History" description="Complete assignment trail for room movements, activations, and vacated records.">
-        <Table columns={columns} data={history} loading={loading} />
+        <Table columns={columns} data={history} loading={loading} paginate pageSize={10} />
       </SectionCard>
 
       <BulkUploadModal
@@ -137,9 +155,13 @@ export default function AllocationsPage() {
             <option value="">Choose student</option>
             {students.map(student => <option key={student.id} value={student.id}>{student.name} ({student.register_no})</option>)}
           </Select>
+          <Select label="Filter by Hostel (Optional)" value={form.hostel_id} onChange={handleHostelChange}>
+            <option value="">All Hostels</option>
+            {hostels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+          </Select>
           <Select label="Select Room" value={form.room_id} onChange={e => setForm(f => ({ ...f, room_id: e.target.value }))}>
             <option value="">Choose room</option>
-            {rooms.map(room => <option key={room.id} value={room.id}>{room.room_number} Block {room.block}, {room.occupied}/{room.capacity} occupied</option>)}
+            {filteredRooms.map(room => <option key={room.id} value={room.id}>{room.room_number} (Block {room.block}, {room.occupied}/{room.capacity} occupied)</option>)}
           </Select>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setModal(null)}>Cancel</Button>

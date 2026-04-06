@@ -164,6 +164,9 @@ const me = async (req, res) => {
 
 const changePassword = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
+  if (!newPassword || newPassword.length < 8) {
+    return res.status(400).json({ success: false, message: 'Password must be at least 8 characters long.' });
+  }
   try {
     const [rows] = await pool.query('SELECT * FROM users WHERE id=?', [req.user.id]);
     if (!rows[0].password)

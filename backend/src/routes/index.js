@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate, adminOnly, caretakerOrAdmin, wardenOrAdmin } = require('../middleware/auth');
+const { studentsListAccess } = require('../middleware/wardenScope');
 
 const authCtrl = require('../controllers/authController');
 const dashCtrl = require('../controllers/dashboardController');
@@ -17,6 +18,7 @@ const visitorCtrl = require('../controllers/visitorController');
 const leaveCtrl = require('../controllers/leaveController');
 const messCtrl = require('../controllers/messMenuController');
 const floorWardenCtrl = require('../controllers/floorWardenController');
+const assignWardenCtrl = require('../controllers/assignWardenController');
 const hostelAppCtrl = require('../controllers/hostelApplicationController');
 const requestCtrl = require('../controllers/requestController');
 const attendanceCtrl = require('../controllers/attendanceController');
@@ -54,6 +56,7 @@ router.put('/caretaker/complaints/:id', authenticate, caretakerOrAdmin, caretake
 
 // ── Warden Dashboard ──────────────────────────────────────
 router.get('/warden/dashboard', authenticate, wardenOrAdmin, wardenCtrl.getStats);
+router.get('/warden/my-scope', authenticate, wardenOrAdmin, wardenCtrl.getMyScope);
 router.get('/warden/students', authenticate, wardenOrAdmin, wardenCtrl.getStudents);
 router.get('/warden/complaints', authenticate, wardenOrAdmin, wardenCtrl.getComplaints);
 
@@ -64,8 +67,9 @@ router.post('/users', authenticate, adminOnly, userCtrl.create);
 router.put('/users/:id', authenticate, adminOnly, userCtrl.update);
 router.delete('/users/:id', authenticate, adminOnly, userCtrl.remove);
 
-// ── Students (Admin) ─────────────────────────────────────
-router.get('/students', authenticate, adminOnly, studentCtrl.getAll);
+// ── Students (Admin / scoped Warden) ─────────────────────
+router.post('/assign-warden', authenticate, adminOnly, assignWardenCtrl.assign);
+router.get('/students', authenticate, studentsListAccess, studentCtrl.getAll);
 router.get('/students/export', authenticate, adminOnly, studentCtrl.exportCSV);
 router.get('/students/:id', authenticate, adminOnly, studentCtrl.getOne);
 router.post('/students', authenticate, adminOnly, studentCtrl.create);

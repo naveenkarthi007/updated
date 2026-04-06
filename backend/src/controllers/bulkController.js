@@ -65,23 +65,32 @@ exports.bulkStudents = async (req, res) => {
 
         const defaultPassword = await bcrypt.hash('student123', 10);
         
-        // 1. Create a user record so the student can log in
-        const [userResult] = await pool.query(
-          'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
-          [name, email, defaultPassword, 'student']
-        );
-        const userId = userResult.insertId;
+        const conn = await pool.getConnection();
+        await conn.beginTransaction();
+        try {
+          // 1. Create a user record so the student can log in
+          const [userResult] = await conn.query(
+            'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+            [name, email, defaultPassword, 'student']
+          );
+          const userId = userResult.insertId;
 
-        // 2. Create the student record linked to the user
-        await pool.query(`
-          INSERT INTO students 
-          (user_id, name, register_no, department, year, phone, email) 
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `, [
-          userId, name, register_no, department || 'CSE', year || 1, phone || '', email
-        ]);
-
-        successCount++;
+          // 2. Create the student record linked to the user
+          await conn.query(`
+            INSERT INTO students 
+            (user_id, name, register_no, department, year, phone, email) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+          `, [
+            userId, name, register_no, department || 'CSE', year || 1, phone || '', email
+          ]);
+          await conn.commit();
+          successCount++;
+        } catch (insertError) {
+          await conn.rollback();
+          throw insertError;
+        } finally {
+          conn.release();
+        }
       } catch (err) {
         failedCount++;
         errors.push({ row: rowNum, reason: err.message });

@@ -2,7 +2,7 @@ const { pool } = require('../config/database');
 
 const getStats = async (req, res) => {
   try {
-    const [[{ totalStudents }]] = await pool.query('SELECT COUNT(*) as totalStudents FROM students');
+    const [[{ totalStudents }]] = await pool.query("SELECT COUNT(*) as totalStudents FROM students s LEFT JOIN users u ON s.user_id = u.id WHERE u.role = 'student' OR s.user_id IS NULL");
     const [[{ totalRooms }]]    = await pool.query('SELECT COUNT(*) as totalRooms FROM rooms');
     const [[{ availableRooms }]]= await pool.query("SELECT COUNT(*) as availableRooms FROM rooms WHERE status='available'");
     const [[{ occupiedRooms }]] = await pool.query("SELECT COUNT(*) as occupiedRooms FROM rooms WHERE status='occupied'");

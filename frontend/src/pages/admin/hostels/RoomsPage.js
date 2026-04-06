@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { roomsAPI } from '../../../services/api';
-import { Button, Badge, Input, Select, Modal, Spinner, PageHeader, SectionCard } from '../../../components/ui';
+import { hostelsAPI, roomsAPI } from '../../../services/api';
+import { Button, Badge, Input, Select, Modal, Spinner, PageHeader, SectionCard, Table } from '../../../components/ui';
 import BulkUploadModal from '../../../components/ui/BulkUploadModal';
 import { Upload } from 'lucide-react';
 
@@ -17,33 +17,38 @@ const STATUS_COLOR = {
 export default function RoomsPage() {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [block, setBlock] = useState('');
+  const [hostels, setHostels] = useState([]);
+  const [hostelId, setHostelId] = useState('');
   const [status, setStatus] = useState('');
   const [modal, setModal] = useState(null);
   const [selected, setSelected] = useState(null);
   const [detail, setDetail] = useState(null);
-  const [form, setForm] = useState({ room_number: '', block: 'A', floor: 1, capacity: 3, room_type: 'triple' });
+  const [form, setForm] = useState({ room_number: '', hostel_id: '', block: 'A', floor: 1, capacity: 3, room_type: 'triple' });
   const [saving, setSaving] = useState(false);
   const [view, setView] = useState('grid');
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
 
+  useEffect(() => {
+    hostelsAPI.getAll().then(res => setHostels(res.data.hostels || [])).catch(() => {});
+  }, []);
+
   const load = useCallback(() => {
     setLoading(true);
-    roomsAPI.getAll({ block, status }).then(r => setRooms(r.data.data)).finally(() => setLoading(false));
-  }, [block, status]);
+    roomsAPI.getAll({ hostel_id: hostelId, status }).then(r => setRooms(r.data.data)).finally(() => setLoading(false));
+  }, [hostelId, status]);
 
   useEffect(() => {
     load();
   }, [load]);
 
   const openAdd = () => {
-    setForm({ room_number: '', block: 'A', floor: 1, capacity: 3, room_type: 'triple' });
+    setForm({ room_number: '', hostel_id: '', block: 'A', floor: 1, capacity: 3, room_type: 'triple' });
     setModal('add');
   };
 
   const openEdit = room => {
     setSelected(room);
-    setForm({ room_number: room.room_number, block: room.block, floor: room.floor, capacity: room.capacity, room_type: room.room_type, status: room.status });
+    setForm({ room_number: room.room_number, hostel_id: room.hostel_id || '', block: room.block, floor: room.floor, capacity: room.capacity, room_type: room.room_type, status: room.status });
     setModal('edit');
   };
 
@@ -108,9 +113,9 @@ export default function RoomsPage() {
 
       <SectionCard title="Inventory Filters" description="Review blocks, occupancy status, and room health indicators from a single control area.">
         <div className="flex flex-wrap gap-3">
-          <Select value={block} onChange={e => setBlock(e.target.value)}>
-            <option value="">All Blocks</option>
-            {['A', 'B', 'C', 'D'].map(b => <option key={b} value={b}>Block {b}</option>)}
+          <Select value={hostelId} onChange={e => setHostelId(e.target.value)}>
+            <option value="">All Hostels</option>
+            {hostels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
           </Select>
           <Select value={status} onChange={e => setStatus(e.target.value)}>
             <option value="">All Status</option>
@@ -119,7 +124,7 @@ export default function RoomsPage() {
             <option value="maintenance">Maintenance</option>
             <option value="reserved">Reserved</option>
           </Select>
-          {(block || status) && <Button variant="ghost" size="sm" onClick={() => { setBlock(''); setStatus(''); }}>Clear</Button>}
+          {(hostelId || status) && <Button variant="ghost" size="sm" onClick={() => { setHostelId(''); setStatus(''); }}>Clear</Button>}
           <div className="ml-auto flex items-center gap-4">
             {Object.keys(STATUS_BADGE).map(key => (
               <span key={key} className="flex items-center gap-2 text-xs text-brand-muted">
@@ -161,43 +166,34 @@ export default function RoomsPage() {
         </SectionCard>
       ) : (
         <SectionCard title="Table Inventory" description="Detailed room register for administrators managing facilities and occupancy.">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-brand-border bg-brand-surface/55">
-                  {['Room No', 'Block', 'Floor', 'Type', 'Capacity', 'Occupied', 'Status', 'Actions'].map(h => (
-                    <th key={h} className="px-5 py-3.5 text-left text-[11px] font-bold uppercase tracking-[0.08em] text-brand-muted">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rooms.map(room => (
-                  <tr key={room.id} className="border-b border-brand-border/70 hover:bg-brand-surface/35 transition-colors">
-                    <td className="px-5 py-4 font-mono font-semibold text-brand-primary">{room.room_number}</td>
-                    <td className="px-5 py-4">Block {room.block}</td>
-                    <td className="px-5 py-4">Floor {room.floor}</td>
-                    <td className="px-5 py-4 capitalize">{room.room_type}</td>
-                    <td className="px-5 py-4">{room.capacity}</td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 bg-gray-200 rounded-full h-1.5 overflow-hidden">
-                          <div className="h-full bg-brand-primary rounded-full" style={{ width: `${occupancyPct(room)}%` }} />
-                        </div>
-                        <span className="text-xs font-mono">{room.occupied}/{room.capacity}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4"><Badge variant={STATUS_BADGE[room.status]}>{room.status}</Badge></td>
-                    <td className="px-5 py-4">
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(room)}>Edit</Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(room.id)}>Delete</Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table 
+            paginate pageSize={15}
+            columns={[
+              { key: 'room_number', label: 'Room No', render: val => <span className="font-mono font-semibold text-brand-primary">{val}</span> },
+              { key: 'hostel_name', label: 'Hostel Name', render: (val, row) => val || (row.hostel_id && hostels.find(h => h.id === row.hostel_id)?.name) || '-' },
+              { key: 'block', label: 'Block', render: val => `Block ${val}` },
+              { key: 'floor', label: 'Floor', render: val => `Floor ${val}` },
+              { key: 'room_type', label: 'Type', render: val => <span className="capitalize">{val}</span> },
+              { key: 'capacity', label: 'Capacity' },
+              { key: 'occupied', label: 'Occupied', render: (val, row) => (
+                <div className="flex items-center gap-2">
+                  <div className="w-16 bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                    <div className="h-full bg-brand-primary rounded-full" style={{ width: `${occupancyPct(row)}%` }} />
+                  </div>
+                  <span className="text-xs font-mono">{row.occupied}/{row.capacity}</span>
+                </div>
+              )},
+              { key: 'status', label: 'Status', render: val => <Badge variant={STATUS_BADGE[val]}>{val}</Badge> },
+              { key: 'actions', label: 'Actions', render: (_, row) => (
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => openEdit(row)}>Edit</Button>
+                  <Button variant="ghost" size="sm" onClick={() => handleDelete(row.id)}>Delete</Button>
+                </div>
+              )}
+            ]}
+            data={rooms}
+            loading={loading}
+          />
         </SectionCard>
       )}
 
@@ -207,6 +203,7 @@ export default function RoomsPage() {
         title="Import Rooms"
         columns={[
           { key: 'room_number', label: 'Room Number' },
+          { key: 'hostel_name', label: 'Hostel Name' },
           { key: 'block', label: 'Block' },
           { key: 'floor', label: 'Floor' },
           { key: 'capacity', label: 'Capacity' },
@@ -222,6 +219,10 @@ export default function RoomsPage() {
       <Modal open={modal === 'add' || modal === 'edit'} onClose={() => setModal(null)} title={modal === 'add' ? 'Add New Room' : 'Edit Room'}>
         <div className="grid grid-cols-2 gap-4">
           <Input label="Room Number" value={form.room_number} onChange={e => setForm(f => ({ ...f, room_number: e.target.value }))} placeholder="e.g. A-101" disabled={modal === 'edit'} />
+          <Select label="Hostel" value={form.hostel_id} onChange={e => setForm(f => ({ ...f, hostel_id: e.target.value }))}>
+            <option value="">-- No linked hostel --</option>
+            {hostels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+          </Select>
           <Select label="Block" value={form.block} onChange={e => setForm(f => ({ ...f, block: e.target.value }))}>
             {['A', 'B', 'C', 'D'].map(b => <option key={b}>{b}</option>)}
           </Select>
@@ -251,7 +252,7 @@ export default function RoomsPage() {
         {detail && (
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
-              {[['Block', `Block ${detail.block}`], ['Floor', `Floor ${detail.floor}`], ['Type', detail.room_type], ['Capacity', detail.capacity], ['Occupied', detail.occupied], ['Status', detail.status]].map(([k, v]) => (
+              {[['Hostel Name', detail.hostel_name || '-'], ['Block', `Block ${detail.block}`], ['Floor', `Floor ${detail.floor}`], ['Type', detail.room_type], ['Capacity', detail.capacity], ['Occupied', detail.occupied], ['Status', detail.status]].map(([k, v]) => (
                 <div key={k} className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
                   <div className="text-xs text-brand-muted uppercase font-bold mb-1">{k}</div>
                   <div className="font-semibold text-brand-text capitalize">{v}</div>

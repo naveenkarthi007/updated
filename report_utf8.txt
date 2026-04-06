@@ -1,0 +1,122 @@
+--- frontend/frontend-errors.json ---
+Total Errors: 58 Warnings: 1
+\src\App.js: 1 errors, 0 warnings
+  Line 79: Parsing error: Unexpected token < (null)
+\src\components\branding\LogoMark.js: 1 errors, 0 warnings
+  Line 11: Parsing error: Unexpected token < (null)
+\src\components\layout\CaretakerSidebar.js: 1 errors, 0 warnings
+  Line 24: Parsing error: Unexpected token < (null)
+\src\components\layout\Sidebar.js: 1 errors, 0 warnings
+  Line 51: Parsing error: Unexpected token < (null)
+\src\components\layout\StudentSidebar.js: 1 errors, 0 warnings
+  Line 43: Parsing error: Unexpected token < (null)
+\src\components\layout\WardenSidebar.js: 1 errors, 0 warnings
+  Line 42: Parsing error: Unexpected token < (null)
+\src\components\ui\BulkUploadModal.js: 1 errors, 0 warnings
+  Line 129: Parsing error: Unexpected token < (null)
+\src\components\ui\index.js: 1 errors, 0 warnings
+  Line 19: Parsing error: Unexpected token < (null)
+\src\context\AuthContext.js: 1 errors, 0 warnings
+  Line 47: Parsing error: Unexpected token < (null)
+\src\context\ThemeContext.js: 1 errors, 0 warnings
+  Line 14: Parsing error: Unexpected token < (null)
+\src\index.js: 1 errors, 0 warnings
+  Line 7: Parsing error: Unexpected token < (null)
+\src\pages\LoginPage.js: 1 errors, 0 warnings
+  Line 52: Parsing error: Unexpected token < (null)
+\src\pages\admin\complaints\AdminMessagesPage.js: 1 errors, 0 warnings
+  Line 19: Parsing error: Unexpected token < (null)
+\src\pages\admin\complaints\ComplaintsPage.js: 1 errors, 0 warnings
+  Line 89: Parsing error: Unexpected token < (null)
+\src\pages\admin\complaints\NoticesPage.js: 1 errors, 0 warnings
+  Line 57: Parsing error: Unexpected token < (null)
+\src\pages\admin\hostels\AdminHostelsPage.js: 1 errors, 0 warnings
+  Line 18: Parsing error: Unexpected token < (null)
+\src\pages\admin\hostels\AllocationsPage.js: 1 errors, 0 warnings
+  Line 82: Parsing error: Unexpected token < (null)
+\src\pages\admin\hostels\MessMenuPage.js: 1 errors, 0 warnings
+  Line 72: Parsing error: Unexpected token < (null)
+\src\pages\admin\hostels\RoomsPage.js: 1 errors, 0 warnings
+  Line 90: Parsing error: Unexpected token < (null)
+\src\pages\admin\hostels\VisitorManagementPage.js: 1 errors, 0 warnings
+  Line 103: Parsing error: Unexpected token < (null)
+\src\pages\admin\reports\AdminAttendanceReportsPage.js: 1 errors, 0 warnings
+  Line 18: Parsing error: Unexpected token < (null)
+\src\pages\admin\reports\DashboardPage.js: 1 errors, 0 warnings
+  Line 34: Parsing error: Unexpected token < (null)
+\src\pages\admin\requests\AdminApplicationReview.js: 1 errors, 0 warnings
+  Line 5: Parsing error: Unexpected token < (null)
+\src\pages\admin\requests\AdminLeaveApprovals.js: 1 errors, 0 warnings
+  Line 5: Parsing error: Unexpected token < (null)
+\src\pages\admin\users\AdminWardenDetailPage.js: 1 errors, 0 warnings
+  Line 9: Parsing error: Unexpected token < (null)
+\src\pages\admin\users\FloorWardenPage.js: 1 errors, 0 warnings
+  Line 64: Parsing error: Unexpected token < (null)
+\src\pages\admin\users\StudentsPage.js: 1 errors, 0 warnings
+  Line 241: Parsing error: Unexpected token < (null)
+\src\pages\admin\users\UsersPage.js: 1 errors, 0 warnings
+  Line 87: Parsing error: Unexpected token < (null)
+\src\pages\caretaker\CaretakerComplaints.js: 1 errors, 0 warnings
+  Line 68: Parsing error: Unexpected token < (null)
+\src\pages\caretaker\CaretakerComplaintsPortal.js: 1 errors, 0 warnings
+  Line 56: Parsing error: Unexpected token < (null)
+\src\pages\caretaker\CaretakerDashboard.js: 1 errors, 0 warnings
+  Line 20: Parsing error: Unexpected token < (null)
+\src\pages\caretaker\CaretakerDashboardPortal.js: 1 errors, 0 warnings
+  Line 19: Parsing error: Unexpected token < (null)
+\src\pages\student\StudentAttendance.js: 1 errors, 0 warnings
+  Line 36: Parsing error: Unexpected token < (null)
+\src\pages\student\StudentComplaints.js: 1 errors, 0 warnings
+  Line 157: Parsing error: Unexpected token < (null)
+\src\pages\student\StudentDashboard.js: 1 errors, 0 warnings
+  Line 23: Parsing error: Unexpected token < (null)
+\src\pages\student\StudentDashboardPortal.js: 1 errors, 0 warnings
+  Line 23: Parsing error: Unexpected token < (null)
+\src\pages\student\StudentHostelApplication.js: 1 errors, 0 warnings
+  Line 66: Parsing error: Unexpected token < (null)
+\src\pages\student\StudentLeaveRequest.js: 1 errors, 0 warnings
+  Line 78: Parsing error: Unexpected token < (null)
+\src\pages\student\StudentLeaveRequestPortal.js: 1 errors, 0 warnings
+  Line 82: Parsing error: Unexpected token < (null)
+\src\pages\student\StudentMyRoom.js: 1 errors, 0 warnings
+  Line 8: Parsing error: Unexpected token < (null)
+\src\pages\student\StudentNotices.js: 1 errors, 0 warnings
+  Line 22: Parsing error: Unexpected token < (null)
+\src\pages\student\StudentNoticesPortal.js: 1 errors, 0 warnings
+  Line 24: Parsing error: Unexpected token < (null)
+\src\pages\student\StudentProfile.js: 1 errors, 0 warnings
+  Line 21: Parsing error: Unexpected token < (null)
+\src\pages\student\StudentRequests.js: 1 errors, 0 warnings
+  Line 54: Parsing error: Unexpected token < (null)
+\src\pages\student\StudentStaffDirectory.js: 1 errors, 0 warnings
+  Line 19: Parsing error: Unexpected token < (null)
+\src\pages\student\StudentVisitorRequests.js: 1 errors, 0 warnings
+  Line 65: Parsing error: Unexpected token < (null)
+\src\pages\warden\WardenApplicationReview.js: 1 errors, 0 warnings
+  Line 53: Parsing error: Unexpected token < (null)
+\src\pages\warden\WardenAttendance.js: 1 errors, 0 warnings
+  Line 91: Parsing error: Unexpected token < (null)
+\src\pages\warden\WardenComplaints.js: 1 errors, 0 warnings
+  Line 47: Parsing error: Unexpected token < (null)
+\src\pages\warden\WardenComplaintsPortal.js: 1 errors, 0 warnings
+  Line 42: Parsing error: Unexpected token < (null)
+\src\pages\warden\WardenDashboard.js: 1 errors, 0 warnings
+  Line 23: Parsing error: Unexpected token < (null)
+\src\pages\warden\WardenDashboardPortal.js: 1 errors, 0 warnings
+  Line 22: Parsing error: Unexpected token < (null)
+\src\pages\warden\WardenLeaveApprovals.js: 1 errors, 0 warnings
+  Line 53: Parsing error: Unexpected token < (null)
+\src\pages\warden\WardenLeaveApprovalsPortal.js: 1 errors, 0 warnings
+  Line 66: Parsing error: Unexpected token < (null)
+\src\pages\warden\WardenMessagesPage.js: 1 errors, 0 warnings
+  Line 64: Parsing error: Unexpected token < (null)
+\src\pages\warden\WardenRequestManagement.js: 1 errors, 0 warnings
+  Line 54: Parsing error: Unexpected token < (null)
+\src\pages\warden\WardenStudents.js: 1 errors, 0 warnings
+  Line 41: Parsing error: Unexpected token < (null)
+\src\pages\warden\WardenStudentsPortal.js: 1 errors, 0 warnings
+  Line 38: Parsing error: Unexpected token < (null)
+\src\services\api.js: 0 errors, 1 warnings
+  Line 4: 'process' is not defined. (no-undef)
+--- backend/backend-errors.json ---
+Total Errors: 0 Warnings: 0

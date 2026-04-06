@@ -11,6 +11,7 @@ CREATE DATABASE IF NOT EXISTS hostel_mgmt
 USE hostel_mgmt;
 
 SET FOREIGN_KEY_CHECKS = 0;
+DROP VIEW IF EXISTS wardens;
 DROP TABLE IF EXISTS attendance;
 DROP TABLE IF EXISTS requests;
 DROP TABLE IF EXISTS hostel_applications;
@@ -18,6 +19,7 @@ DROP TABLE IF EXISTS mess_menu;
 DROP TABLE IF EXISTS leaves;
 DROP TABLE IF EXISTS visitors;
 DROP TABLE IF EXISTS notices;
+DROP TABLE IF EXISTS warden_messages;
 DROP TABLE IF EXISTS complaints;
 DROP TABLE IF EXISTS allocations;
 DROP TABLE IF EXISTS students;
@@ -43,12 +45,16 @@ CREATE TABLE IF NOT EXISTS users (
   INDEX idx_users_specialty (specialty)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE OR REPLACE VIEW wardens AS
+  SELECT id, name, email FROM users WHERE role = 'warden';
+
 -- ── ROOMS TABLE ──
 CREATE TABLE IF NOT EXISTS rooms (
   id           INT AUTO_INCREMENT PRIMARY KEY,
   room_number  VARCHAR(20) NOT NULL UNIQUE,
   block        ENUM('A','B','C','D') NOT NULL,
   floor        TINYINT NOT NULL DEFAULT 1,
+  wing         ENUM('left','right') DEFAULT NULL,
   capacity     TINYINT NOT NULL DEFAULT 3,
   occupied     TINYINT NOT NULL DEFAULT 0,
   room_type    ENUM('single','double','triple','quad') DEFAULT 'single',
@@ -87,6 +93,8 @@ CREATE TABLE IF NOT EXISTS students (
   email        VARCHAR(120),
   address      TEXT,
   room_id      INT DEFAULT NULL,
+  floor        TINYINT NULL DEFAULT NULL,
+  wing         ENUM('left','right') DEFAULT NULL,
   joined_date  DATE,
   created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -153,6 +161,27 @@ CREATE TABLE IF NOT EXISTS notices (
   INDEX idx_notices_category (category),
   INDEX idx_notices_target (target),
   INDEX idx_notices_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── WARDEN MESSAGES (admin ↔ warden) ──
+CREATE TABLE IF NOT EXISTS warden_messages (
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  sender_id       INT NOT NULL,
+  receiver_id     INT DEFAULT NULL,
+  title           VARCHAR(200) NOT NULL,
+  description     TEXT NOT NULL,
+  priority        ENUM('LOW','MEDIUM','HIGH') DEFAULT 'MEDIUM',
+  status          ENUM('SENT','SEEN','RESOLVED') DEFAULT 'SENT',
+  is_to_all_wardens TINYINT(1) DEFAULT 0,
+  admin_reply     TEXT DEFAULT NULL,
+  created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE SET NULL,
+  INDEX idx_wm_sender (sender_id),
+  INDEX idx_wm_receiver (receiver_id),
+  INDEX idx_wm_status (status),
+  INDEX idx_wm_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ── VISITORS TABLE ──

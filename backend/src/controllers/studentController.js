@@ -1,25 +1,22 @@
 const { pool } = require('../config/database');
 const { Parser } = require('json2csv');
+const bcrypt = require('bcryptjs');
+const { listStudents } = require('../utils/studentList');
 
 const getAll = async (req, res) => {
   try {
-    const { search, dept, year, page = 1, limit = 20 } = req.query;
-    let where = '1=1';
-    const params = [];
-    if (search) { where += ' AND (s.name LIKE ? OR s.register_no LIKE ? OR s.email LIKE ?)'; const q = `%${search}%`; params.push(q,q,q); }
-    if (dept)   { where += ' AND s.department=?'; params.push(dept); }
-    if (year)   { where += ' AND s.year=?'; params.push(year); }
-
-    const offset = (parseInt(page)-1) * parseInt(limit);
-    const [rows] = await pool.query(
-      `SELECT s.*, r.room_number, r.block FROM students s
-       LEFT JOIN rooms r ON s.room_id=r.id
-       WHERE ${where} ORDER BY s.created_at DESC LIMIT ? OFFSET ?`,
-      [...params, parseInt(limit), offset]
-    );
-    const [[{ total }]] = await pool.query(`SELECT COUNT(*) as total FROM students s WHERE ${where}`, params);
-    res.json({ success: true, data: rows, total, page: parseInt(page), limit: parseInt(limit) });
-  } catch (err) { console.error(err); res.status(500).json({ success: false, message: 'Server error.' }); }
+    const mode = req.user.role === 'warden' ? 'warden' : 'admin';
+    const wardenScopes = mode === 'warden' ? req.wardenScopes : null;
+    const { rows, total, page, limit } = await listStudents({
+      mode,
+      wardenScopes,
+      query: req.query,
+    });
+    res.json({ success: true, data: rows, total, page, limit });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
 };
 
 const getOne = async (req, res) => {
@@ -35,27 +32,64 @@ const getOne = async (req, res) => {
 
 const create = async (req, res) => {
   const { name, register_no, department, year, phone, email, address, joined_date } = req.body;
-  if (!name || !register_no || !department || !year)
-    return res.status(400).json({ success: false, message: 'Name, register_no, department and year are required.' });
+  if (!name || !register_no || !department || !year || !email)
+    return res.status(400).json({ success: false, message: 'Name, register no, department, year, and email are required.' });
   try {
-    const [result] = await pool.query(
-      'INSERT INTO students (name,register_no,department,year,phone,email,address,joined_date) VALUES (?,?,?,?,?,?,?,?)',
-      [name,register_no,department,year,phone,email,address,joined_date||new Date()]
-    );
-    res.status(201).json({ success: true, message: 'Student created.', id: result.insertId });
+    const conn = await pool.getConnection();
+    await conn.beginTransaction();
+    try {
+      // 1. Create a User so student can log in
+      const defaultPassword = await bcrypt.hash('student123', 10);
+      const [userResult] = await conn.query(
+        'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+        [name, email, defaultPassword, 'student']
+      );
+      const userId = userResult.insertId;
+
+      // 2. Create the Student linked to user
+      const [result] = await conn.query(
+        'INSERT INTO students (user_id, name, register_no, department, year, phone, email, address, joined_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [userId, name, register_no, department, year, phone || null, email, address || null, joined_date || new Date()]
+      );
+
+      await conn.commit();
+      res.status(201).json({ success: true, message: 'Student created.', id: result.insertId });
+    } catch (insertError) {
+      await conn.rollback();
+      throw insertError;
+    } finally {
+      conn.release();
+    }
   } catch (err) {
-    if (err.code==='ER_DUP_ENTRY') return res.status(400).json({ success: false, message: 'Register number already exists.' });
+    if (err.code === 'ER_DUP_ENTRY') return res.status(400).json({ success: false, message: 'Register number or email already exists.' });
+    console.error(err);
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
 
 const update = async (req, res) => {
-  const { name, department, year, phone, email, address } = req.body;
+  const { name, department, year, phone, email, address, joined_date, floor, wing } = req.body;
+  if (!name || !department || !year) {
+    return res.status(400).json({ success: false, message: 'Name, department and year are required.' });
+  }
   try {
-    await pool.query(
-      'UPDATE students SET name=?,department=?,year=?,phone=?,email=?,address=? WHERE id=?',
-      [name,department,year,phone,email,address,req.params.id]
-    );
+    let sql =
+      'UPDATE students SET name=?,department=?,year=?,phone=?,email=?,address=?,joined_date=?';
+    const vals = [name, department, year, phone, email, address, joined_date || null];
+    if (Object.prototype.hasOwnProperty.call(req.body, 'floor')) {
+      const floorVal = floor === undefined || floor === '' ? null : Number(floor);
+      sql += ',floor=?';
+      vals.push(Number.isFinite(floorVal) ? floorVal : null);
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, 'wing')) {
+      const w = wing === undefined || wing === '' ? null : String(wing).toLowerCase();
+      const wingVal = w === 'right' ? 'right' : w === 'left' ? 'left' : null;
+      sql += ',wing=?';
+      vals.push(wingVal);
+    }
+    sql += ' WHERE id=?';
+    vals.push(req.params.id);
+    await pool.query(sql, vals);
     res.json({ success: true, message: 'Student updated.' });
   } catch (err) { console.error('Error in ' + __filename + ':', err); res.status(500).json({ success: false, message: 'Server error.' }); }
 };
@@ -75,7 +109,12 @@ const remove = async (req, res) => {
 const exportCSV = async (req, res) => {
   try {
     const [rows] = await pool.query(
-      'SELECT s.name,s.register_no,s.department,s.year,s.phone,s.email,r.room_number,r.block FROM students s LEFT JOIN rooms r ON s.room_id=r.id ORDER BY s.name'
+      `SELECT s.name,s.register_no,s.department,s.year,s.phone,s.email,r.room_number,r.block 
+       FROM students s 
+       LEFT JOIN rooms r ON s.room_id=r.id 
+       LEFT JOIN users u ON s.user_id=u.id
+       WHERE u.role='student' OR s.user_id IS NULL
+       ORDER BY s.name`
     );
     const parser = new Parser({ fields: ['name','register_no','department','year','phone','email','room_number','block'] });
     const csv = parser.parse(rows);

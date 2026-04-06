@@ -32,13 +32,13 @@ const getAll = async (req, res) => {
 // ── Create hostel ─────────────────────────────────────────────
 const create = async (req, res) => {
   try {
-    const { name, block_code, gender = 'COED', total_rooms = 0, warden_id } = req.body;
+    const { name, block_code, gender = 'COED', total_rooms = 0, warden_id, capacity = 0 } = req.body;
     if (!name) return res.status(400).json({ success: false, message: 'Hostel name is required.' });
 
     const [result] = await pool.query(
-      `INSERT INTO hostels (name, block_code, gender, total_rooms, warden_id)
-       VALUES (?, ?, ?, ?, ?)`,
-      [name, block_code || null, gender, total_rooms, warden_id || null]
+      `INSERT INTO hostels (name, block_code, gender, total_rooms, warden_id, capacity)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [name, block_code || null, gender, total_rooms, warden_id || null, capacity || 0]
     );
     const [[hostel]] = await pool.query('SELECT * FROM hostels WHERE id=?', [result.insertId]);
     res.json({ success: true, hostel });
@@ -57,10 +57,10 @@ const update = async (req, res) => {
     const [[hostel]] = await pool.query('SELECT * FROM hostels WHERE id=?', [req.params.id]);
     if (!hostel) return res.status(404).json({ success: false, message: 'Hostel not found.' });
 
-    const { name, block_code, gender, total_rooms, warden_id } = req.body;
+    const { name, block_code, gender, total_rooms, warden_id, capacity } = req.body;
     await pool.query(
       `UPDATE hostels SET
-         name=?, block_code=?, gender=?, total_rooms=?, warden_id=?, updated_at=NOW()
+         name=?, block_code=?, gender=?, total_rooms=?, warden_id=?, capacity=?, updated_at=NOW()
        WHERE id=?`,
       [
         name ?? hostel.name,
@@ -68,6 +68,7 @@ const update = async (req, res) => {
         gender ?? hostel.gender,
         total_rooms ?? hostel.total_rooms,
         warden_id !== undefined ? (warden_id || null) : hostel.warden_id,
+        capacity ?? hostel.capacity,
         req.params.id,
       ]
     );

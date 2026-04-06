@@ -1,0 +1,40 @@
+﻿
+> hostel-mgmt-frontend@1.0.0 build
+> react-scripts build
+
+node.exe : (node:17984) [DEP0176] 
+DeprecationWarning: fs.F_OK is deprecated, use 
+fs.constants.F_OK instead
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ((node:1 
+   7984) [D...ts.F_OK instead:String) [], RemoteExc  
+  eption
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+(Use `node --trace-deprecation ...` to show where 
+the warning was created)
+Creating an optimized production build...
+
+Treating warnings as errors because process.env.CI = true.
+Most CI servers set it automatically.
+
+Failed to compile.
+
+[eslint] 
+src\components\layout\Sidebar.js
+  Line 3:129:  'CreditCard' is defined but never used  no-unused-vars
+
+src\components\layout\StudentSidebar.js
+  Line 3:159:  'CreditCard' is defined but never used  no-unused-vars
+
+src\pages\admin\hostels\AdminHostelsPage.js
+  Line 160:9:  'coedHostels' is assigned a value but never used  no-unused-vars
+
+src\pages\student\StudentHostelApplication.js
+  Line 4:33:  'Textarea' is defined but never used  no-unused-vars
+
+
