@@ -3,12 +3,14 @@ import { motion } from 'framer-motion';
 import { wardenAPI } from '../../services/api';
 import { Spinner } from '../../components/ui';
 import { Search } from 'lucide-react';
+import useHostelNameMap from '../../hooks/useHostelNameMap';
 
 const DEPTS = ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'AIDS', 'AIML', 'CSD'];
 const pageSize = 20;
 
 
 export default function WardenStudents() {
+  const { getHostelName } = useHostelNameMap();
   const [students, setStudents] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -162,7 +164,7 @@ export default function WardenStudents() {
                       Year {student.year}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {student.room_number ? `${student.room_number} (Block ${student.block})` : '—'}
+                      {student.room_number ? `${student.room_number} (${getHostelName(student.block)})` : '—'}
                     </td>
                     <td className="px-6 py-4 font-mono text-sm text-gray-600">
                       {student.phone || '—'}

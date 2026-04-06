@@ -5,6 +5,7 @@ import { hostelsAPI, roomsAPI } from '../../../services/api';
 import { Button, Badge, Input, Select, Modal, Spinner, PageHeader, SectionCard, Table } from '../../../components/ui';
 import BulkUploadModal from '../../../components/ui/BulkUploadModal';
 import { Upload } from 'lucide-react';
+import useHostelNameMap from '../../../hooks/useHostelNameMap';
 
 const STATUS_BADGE = { available: 'success', occupied: 'danger', maintenance: 'warning', reserved: 'info' };
 const STATUS_COLOR = {
@@ -15,6 +16,7 @@ const STATUS_COLOR = {
 };
 
 export default function RoomsPage() {
+  const { getHostelName } = useHostelNameMap();
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hostels, setHostels] = useState([]);
@@ -171,7 +173,7 @@ export default function RoomsPage() {
             columns={[
               { key: 'room_number', label: 'Room No', render: val => <span className="font-mono font-semibold text-brand-primary">{val}</span> },
               { key: 'hostel_name', label: 'Hostel Name', render: (val, row) => val || (row.hostel_id && hostels.find(h => h.id === row.hostel_id)?.name) || '-' },
-              { key: 'block', label: 'Block', render: val => `Block ${val}` },
+              { key: 'block', label: 'Hostel', render: val => getHostelName(val) },
               { key: 'floor', label: 'Floor', render: val => `Floor ${val}` },
               { key: 'room_type', label: 'Type', render: val => <span className="capitalize">{val}</span> },
               { key: 'capacity', label: 'Capacity' },
@@ -223,7 +225,7 @@ export default function RoomsPage() {
             <option value="">-- No linked hostel --</option>
             {hostels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
           </Select>
-          <Select label="Block" value={form.block} onChange={e => setForm(f => ({ ...f, block: e.target.value }))}>
+          <Select label="Hostel Block Code" value={form.block} onChange={e => setForm(f => ({ ...f, block: e.target.value }))}>
             {['A', 'B', 'C', 'D'].map(b => <option key={b}>{b}</option>)}
           </Select>
           <Input label="Floor" type="number" min={1} max={10} value={form.floor} onChange={e => setForm(f => ({ ...f, floor: +e.target.value }))} />
@@ -252,7 +254,7 @@ export default function RoomsPage() {
         {detail && (
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
-              {[['Hostel Name', detail.hostel_name || '-'], ['Block', `Block ${detail.block}`], ['Floor', `Floor ${detail.floor}`], ['Type', detail.room_type], ['Capacity', detail.capacity], ['Occupied', detail.occupied], ['Status', detail.status]].map(([k, v]) => (
+              {[['Hostel Name', detail.hostel_name || getHostelName(detail.block)], ['Floor', `Floor ${detail.floor}`], ['Type', detail.room_type], ['Capacity', detail.capacity], ['Occupied', detail.occupied], ['Status', detail.status]].map(([k, v]) => (
                 <div key={k} className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
                   <div className="text-xs text-brand-muted uppercase font-bold mb-1">{k}</div>
                   <div className="font-semibold text-brand-text capitalize">{v}</div>

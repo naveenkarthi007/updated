@@ -4,6 +4,8 @@ import { studentsAPI, roomsAPI, allocationsAPI } from '../../../services/api';
 import { Input, Select, Textarea, Modal } from '../../../components/ui';
 import BulkUploadModal from '../../../components/ui/BulkUploadModal';
 import { Upload } from 'lucide-react';
+import useDebouncedValue from '../../../hooks/useDebouncedValue';
+import useHostelNameMap from '../../../hooks/useHostelNameMap';
 
 const COLORS = {
   primarybg: '#EEF1F9',
@@ -27,6 +29,7 @@ const defaultForm = {
   register_no: '',
   department: 'CSE',
   year: 1,
+  wing: '',
   phone: '',
   email: '',
   address: '',
@@ -34,14 +37,17 @@ const defaultForm = {
 };
 
 const pageSize = 15;
+const isProfileLinked = (student) => Boolean(student?.user_id);
 
 export default function StudentsPage() {
+  const { hostels, getHostelName } = useHostelNameMap();
   const [students, setStudents] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 400);
   const [filters, setFilters] = useState({
     dept: '',
     year: '',
@@ -61,7 +67,7 @@ export default function StudentsPage() {
     setLoading(true);
 
     const params = {
-      search,
+      search: debouncedSearch,
       dept: filters.dept || undefined,
       year: filters.year || undefined,
       page,
@@ -83,7 +89,7 @@ export default function StudentsPage() {
       .finally(() => {
         setLoading(false);
       });
-  }, [search, filters, page]);
+  }, [debouncedSearch, filters, page]);
 
   useEffect(() => {
     loadStudents();
@@ -108,6 +114,7 @@ export default function StudentsPage() {
     register_no: form.register_no.trim().toUpperCase(),
     department: form.department,
     year: Number(form.year),
+    wing: form.wing || null,
     phone: form.phone.trim(),
     email: form.email.trim(),
     address: form.address.trim(),
@@ -127,6 +134,7 @@ export default function StudentsPage() {
       register_no: student.register_no || '',
       department: student.department || 'CSE',
       year: student.year || 1,
+      wing: student.effective_wing || student.wing || student.room_wing || '',
       phone: student.phone || '',
       email: student.email || '',
       address: student.address || '',
@@ -287,6 +295,16 @@ export default function StudentsPage() {
             Year {year}
           </option>
         ))}
+      </Select>
+
+      <Select
+        label="Wing"
+        value={form.wing}
+        onChange={(e) => handleInput('wing', e.target.value)}
+      >
+        <option value="">Select wing</option>
+        <option value="left">Left Wing</option>
+        <option value="right">Right Wing</option>
       </Select>
 
       <Input
@@ -465,7 +483,7 @@ export default function StudentsPage() {
               <select
                 value={filters.block}
                 onChange={(e) => {
-                  setFilters((prev) => ({ ...prev, block: e.target.value }));
+                  setFilters((prev) => ({ ...prev, block: e.target.value, floor: '' }));
                   setPage(1);
                 }}
                 className="rounded-xl px-4 py-3 text-sm outline-none border"
@@ -475,10 +493,10 @@ export default function StudentsPage() {
                   color: COLORS.primarytext,
                 }}
               >
-                <option value="">All blocks</option>
-                {['A', 'B', 'C', 'D'].map((b) => (
-                  <option key={b} value={b}>
-                    Block {b}
+                <option value="">All hostels</option>
+                {hostels.map((h) => (
+                  <option key={h.id} value={h.block_code || h.name || ''}>
+                    {h.name}
                   </option>
                 ))}
               </select>
@@ -518,7 +536,7 @@ export default function StudentsPage() {
                   key={label}
                   type="button"
                   onClick={() => {
-                    setFilters((prev) => ({ ...prev, wing: key }));
+                    setFilters((prev) => ({ ...prev, wing: key, floor: '' }));
                     setPage(1);
                   }}
                   className="rounded-xl px-3 py-2 text-xs font-semibold border transition-all"
@@ -549,6 +567,7 @@ export default function StudentsPage() {
                       'Roll No',
                       'Student Name',
                       'Department & Year',
+                      'Hostel',
                       'Room',
                       'Floor',
                       'Wing',
@@ -573,7 +592,7 @@ export default function StudentsPage() {
                   {loading ? (
                     <tr>
                       <td
-                        colSpan="8"
+                        colSpan="9"
                         className="text-center py-12"
                         style={{ color: COLORS.secondarytext }}
                       >
@@ -583,7 +602,7 @@ export default function StudentsPage() {
                   ) : students.length === 0 ? (
                     <tr>
                       <td
-                        colSpan="8"
+                        colSpan="9"
                         className="text-center py-12"
                         style={{ color: COLORS.secondarytext }}
                       >
@@ -630,6 +649,10 @@ export default function StudentsPage() {
 
                         <td className="px-5 py-4" style={{ color: COLORS.secondarytext }}>
                           {student.department} | Year {student.year}
+                        </td>
+
+                        <td className="px-5 py-4" style={{ color: COLORS.secondarytext }}>
+                          {student.block ? getHostelName(student.block) : '—'}
                         </td>
 
                         <td className="px-5 py-4">
@@ -872,9 +895,9 @@ export default function StudentsPage() {
                 ['Phone', selected.phone || 'N/A'],
                 ['Email', selected.email || 'N/A'],
                 [
-                  'Room',
+                  'Hostel / Room',
                   selected.room_number
-                    ? `${selected.room_number} (Block ${selected.block})`
+                    ? `${selected.room_number} (${getHostelName(selected.block)})`
                     : 'Unassigned',
                 ],
                 ['Joined Date', selected.joined_date?.slice(0, 10) || 'N/A'],
@@ -946,6 +969,16 @@ export default function StudentsPage() {
                 {selected.name}
               </span>
             </p>
+            <div
+              className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold border"
+              style={{
+                borderColor: isProfileLinked(selected) ? '#86efac' : '#fcd34d',
+                backgroundColor: isProfileLinked(selected) ? '#f0fdf4' : '#fffbeb',
+                color: isProfileLinked(selected) ? '#166534' : '#92400e',
+              }}
+            >
+              Profile Link: {isProfileLinked(selected) ? 'Verified' : 'Not Linked'}
+            </div>
 
             <div>
               <label
@@ -968,7 +1001,7 @@ export default function StudentsPage() {
                 <option value="">Choose a room</option>
                 {rooms.map((room) => (
                   <option key={room.id} value={room.id}>
-                    {room.room_number} (Block {room.block}) | {room.occupied}/
+                    {room.room_number} ({getHostelName(room.block)}) | {room.occupied}/
                     {room.capacity} occupied
                   </option>
                 ))}

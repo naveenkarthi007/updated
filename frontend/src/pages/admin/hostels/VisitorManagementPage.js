@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { visitorsAPI, studentsAPI, wardenAPI } from '../../../services/api';
 import { Card, Button, Input, Select, Badge, Table, Modal, Spinner } from '../../../components/ui';
 import { LogOut, Plus, Search, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../../context/AuthContext';
+import useDebouncedValue from '../../../hooks/useDebouncedValue';
 
 export default function VisitorManagementPage() {
   const { isAdmin, isWarden } = useAuth();
   const [visitors, setVisitors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [statusFilter, setStatusFilter] = useState('');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,19 +26,19 @@ export default function VisitorManagementPage() {
     student_id: ''
   });
 
-  const fetchVisitors = async () => {
+  const fetchVisitors = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await visitorsAPI.getAll({ search, status: statusFilter });
+      const res = await visitorsAPI.getAll({ search: debouncedSearch, status: statusFilter });
       setVisitors(res.data.data);
     } catch (err) {
       toast.error('Failed to load visitors');
     } finally {
       setLoading(false);
     }
-  };
+  }, [debouncedSearch, statusFilter]);
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     try {
       // Wardens use their own endpoint; admins use the admin students endpoint
       if (isWarden) {
@@ -49,17 +51,15 @@ export default function VisitorManagementPage() {
     } catch (err) {
       console.error('Failed to load students');
     }
-  };
+  }, [isWarden]);
 
   useEffect(() => {
     fetchVisitors();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, statusFilter]);
+  }, [fetchVisitors]);
 
   useEffect(() => {
     fetchStudents();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchStudents]);
 
   const handleCreate = async (e) => {
     e.preventDefault();

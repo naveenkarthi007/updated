@@ -3,6 +3,7 @@ import { GraduationCap, Search, Users } from 'lucide-react';
 import { studentsAPI, wardenAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { Badge, EmptyState, Input, MetricPanel, PanelShell, PortalHero, Select, Spinner } from '../../components/ui';
+import useHostelNameMap from '../../hooks/useHostelNameMap';
 
 const DEPARTMENTS = ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'AIDS', 'AIML', 'CSD'];
 const PAGE_SIZE = 20;
@@ -22,6 +23,7 @@ function formatWingLabel(wing) {
 }
 
 export default function WardenStudentsPortal() {
+  const { getHostelName } = useHostelNameMap();
   const { isWarden, isAdmin } = useAuth();
   const [students, setStudents] = useState([]);
   const [total, setTotal] = useState(0);
@@ -107,7 +109,7 @@ export default function WardenStudentsPortal() {
     ? {
         title: 'No floor assignment',
         description:
-          'You are not assigned as a floor warden yet. Ask an administrator to assign you to a block, floor, and wing.',
+          'You are not assigned as a floor warden yet. Ask an administrator to assign you to a hostel, floor, and wing.',
       }
     : {
         title: 'No students found',
@@ -120,7 +122,7 @@ export default function WardenStudentsPortal() {
       <PortalHero
         eyebrow="Warden Students"
         title="Student Management"
-        description="Students in your assigned block, floor, and wing. Lists are scoped automatically from your warden assignment."
+        description="Students in your assigned hostel, floor, and wing. Lists are scoped automatically from your warden assignment."
         accent="blue"
         icon={<GraduationCap className="h-4 w-4" />}
       />
@@ -153,7 +155,7 @@ export default function WardenStudentsPortal() {
           <div className="flex flex-wrap gap-2">
             {assignments.map((a) => (
               <Badge key={`${a.block}-${a.floor}-${a.wing}`} className="rounded-full px-3 py-1 text-xs font-semibold">
-                Block {a.block} · Floor {a.floor} · {formatWingLabel(a.wing)}
+                {getHostelName(a.block)} · Floor {a.floor} · {formatWingLabel(a.wing)}
               </Badge>
             ))}
           </div>
@@ -279,7 +281,7 @@ export default function WardenStudentsPortal() {
                   <tr key={student.id} className="border-b border-brand-border/40 last:border-0 bg-white/80">
                     <td className="px-4 py-3 font-semibold text-brand-text">{student.name}</td>
                     <td className="px-4 py-3 text-brand-muted">
-                      {student.room_number ? `${student.block ? `${student.block}-` : ''}${student.room_number}` : '—'}
+                      {student.room_number ? `${student.room_number} (${getHostelName(student.block)})` : '—'}
                     </td>
                     <td className="px-4 py-3 text-brand-muted">{student.effective_floor ?? student.floor ?? student.room_floor ?? '—'}</td>
                     <td className="px-4 py-3">

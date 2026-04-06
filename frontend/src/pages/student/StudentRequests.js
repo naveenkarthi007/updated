@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { requestsAPI } from '../../services/api';
 import { Badge, Button, Input, Select, Textarea, PanelShell, PortalHero, EmptyState, Spinner } from '../../components/ui';
@@ -15,7 +15,7 @@ export default function StudentRequests() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
 
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     try {
       setLoading(true);
       const res = await requestsAPI.getMyRequests();
@@ -25,12 +25,11 @@ export default function StudentRequests() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchRequests();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchRequests]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -84,7 +83,7 @@ export default function StudentRequests() {
                 <option value="room_change">Room Change Request</option>
                 <option value="other">Other Administrative Request</option>
               </Select>
-              <Input label="Subject / Title" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Request to move to Block B" required />
+              <Input label="Subject / Title" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Request to move to Ramanujan Hostel" required />
             </div>
             <Textarea
               label="Description & Reason"

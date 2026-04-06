@@ -1,5 +1,11 @@
 const { pool } = require('../config/database');
 
+const deriveAcademicYearFromDate = (date = new Date()) => {
+  const d = new Date(date);
+  const startYear = d.getMonth() >= 5 ? d.getFullYear() : d.getFullYear() - 1;
+  return `${startYear}-${startYear + 1}`;
+};
+
 // ── Get all hostels ───────────────────────────────────────────
 const getAll = async (req, res) => {
   try {
@@ -197,6 +203,38 @@ const getMyRoom = async (req, res) => {
       [student.id]
     );
 
+    // Use latest approved application for academic metadata; fallback to latest application.
+    const [[approvedApp]] = await pool.query(
+      `SELECT academic_year, semester
+       FROM hostel_applications
+       WHERE student_id=? AND status='approved'
+       ORDER BY updated_at DESC, id DESC
+       LIMIT 1`,
+      [student.id]
+    );
+    let latestApp = null;
+    if (!approvedApp) {
+      const [latestRows] = await pool.query(
+        `SELECT academic_year, semester
+         FROM hostel_applications
+         WHERE student_id=?
+         ORDER BY updated_at DESC, id DESC
+         LIMIT 1`,
+        [student.id]
+      );
+      latestApp = latestRows[0] || null;
+    }
+    const applicationMeta = approvedApp || latestApp || null;
+    const academicYearValue = applicationMeta?.academic_year || deriveAcademicYearFromDate();
+    const semesterValue = applicationMeta?.semester || student.year || null;
+    const [roommateRows] = await pool.query(
+      `SELECT id, name, register_no, department, year
+       FROM students
+       WHERE room_id=? AND id<>?
+       ORDER BY name ASC`,
+      [student.room_id, student.id]
+    );
+
     res.json({
       success: true,
       allocated: true,
@@ -212,12 +250,13 @@ const getMyRoom = async (req, res) => {
       },
       allocation: allocation ? {
         id: allocation.id,
-        academicYear: null,
-        semester: null,
+        academicYear: academicYearValue,
+        semester: semesterValue,
         status: 'ACTIVE',
         allocationDate: allocation.allocated_at,
         endDate: allocation.vacated_at,
       } : null,
+      roommates: roommateRows || [],
     });
   } catch (err) {
     console.error('getMyRoom error:', err);

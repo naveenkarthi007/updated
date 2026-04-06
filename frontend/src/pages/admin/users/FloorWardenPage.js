@@ -1,18 +1,32 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { roomsAPI } from '../../../services/api';
+import { hostelsAPI, roomsAPI } from '../../../services/api';
 import { Button, Badge, Select, Spinner, PageHeader, SectionCard } from '../../../components/ui';
 
 export default function FloorWardenPage() {
+  const [hostels, setHostels] = useState([]);
   const [wardens, setWardens] = useState([]);
   const [floorWardens, setFloorWardens] = useState([]);
   const [assignmentLoading, setAssignmentLoading] = useState(true);
   const [assignmentSaving, setAssignmentSaving] = useState(false);
-  const [assignmentBlock, setAssignmentBlock] = useState('A');
+  const [assignmentBlock, setAssignmentBlock] = useState('');
   const [assignmentFloor, setAssignmentFloor] = useState(1);
   const [wingAssignments, setWingAssignments] = useState({ left: '', right: '' });
 
+  useEffect(() => {
+    hostelsAPI.getAll()
+      .then((res) => {
+        const mapped = (res.data.hostels || []).filter((item) => item.block_code);
+        setHostels(mapped);
+        if (mapped.length > 0) {
+          setAssignmentBlock(mapped[0].block_code);
+        }
+      })
+      .catch(() => toast.error('Failed to load hostels.'));
+  }, []);
+
   const loadAssignments = useCallback(() => {
+    if (!assignmentBlock) return;
     setAssignmentLoading(true);
     Promise.all([
       roomsAPI.getWardens(),
@@ -65,18 +79,22 @@ export default function FloorWardenPage() {
       <PageHeader
         eyebrow="Facilities Management"
         title="Floor Wardens"
-        description="Manage separate wardens for the left wing and right wing of a specific block and floor."
+        description="Manage separate wardens for the left wing and right wing of a specific hostel and floor."
       />
 
       <SectionCard
         title="Floor Warden Assignment"
-        description="Assign separate wardens for the left wing and right wing of a specific block and floor."
+        description="Assign separate wardens for the left wing and right wing of a specific hostel and floor."
         action={<Button size="sm" onClick={saveFloorWardens} loading={assignmentSaving}>Save Floor Wardens</Button>}
       >
         <div className="space-y-4">
           <div className="flex flex-wrap gap-3">
             <Select value={assignmentBlock} onChange={e => setAssignmentBlock(e.target.value)}>
-              {['A', 'B', 'C', 'D'].map(b => <option key={b} value={b}>Block {b}</option>)}
+              {hostels.map((h) => (
+                <option key={h.id} value={h.block_code}>
+                  {h.name}
+                </option>
+              ))}
             </Select>
             <Select value={assignmentFloor} onChange={e => setAssignmentFloor(Number(e.target.value))}>
               {[1, 2, 3, 4, 5].map(f => <option key={f} value={f}>Floor {f}</option>)}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { attendanceAPI } from '../../services/api';
 import { Badge, PanelShell, PortalHero, EmptyState, Spinner, Select } from '../../components/ui';
@@ -14,7 +14,7 @@ export default function StudentAttendance() {
   const [month, setMonth] = useState(currentDate.getMonth() + 1);
   const [year, setYear] = useState(currentDate.getFullYear());
 
-  const fetchAttendance = async () => {
+  const fetchAttendance = useCallback(async () => {
     try {
       setLoading(true);
       const res = await attendanceAPI.getMyAttendance({ month, year });
@@ -25,12 +25,11 @@ export default function StudentAttendance() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [month, year]);
 
   useEffect(() => {
     fetchAttendance();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [month, year]);
+  }, [fetchAttendance]);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">

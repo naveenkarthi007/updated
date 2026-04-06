@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { allocationsAPI, studentsAPI, roomsAPI, hostelsAPI } from '../../../services/api';
 import { Button, Badge, Select, Modal, Table, PageHeader, SectionCard } from '../../../components/ui';
 import BulkUploadModal from '../../../components/ui/BulkUploadModal';
 import { Upload } from 'lucide-react';
 import { format } from 'date-fns';
+import useHostelNameMap from '../../../hooks/useHostelNameMap';
 
 export default function AllocationsPage() {
+  const { getHostelName } = useHostelNameMap();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
@@ -19,30 +21,43 @@ export default function AllocationsPage() {
   const [saving, setSaving] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
 
-  const load = () => {
+  const lastOptionsLoadAtRef = useRef(0);
+  const load = useCallback(() => {
     setLoading(true);
     allocationsAPI.history().then(r => setHistory(r.data.data)).finally(() => setLoading(false));
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const openAllocate = async () => {
-    const [sr, rr, hr] = await Promise.all([
-      studentsAPI.getAll({ limit: 500 }),
-      roomsAPI.getAll({ status: 'available' }),
-      hostelsAPI.getAll()
-    ]);
-    setStudents(sr.data.data.filter(s => !s.room_id));
+    try {
+      const now = Date.now();
+      const isFresh = now - lastOptionsLoadAtRef.current < 30_000; // 30s: prevents refetch storm when reopening modal
+
+      if (!isFresh || students.length === 0 || allRooms.length === 0 || hostels.length === 0) {
+        const [sr, rr, hr] = await Promise.all([
+          studentsAPI.getAll({ limit: 500 }),
+          roomsAPI.getAll({ status: 'available' }),
+          hostelsAPI.getAll(),
+        ]);
+
+        setStudents((sr.data.data || []).filter(s => !s.room_id));
+
+        const availableRooms = (rr.data.data || []).filter(r => r.occupied < r.capacity);
+        setAllRooms(availableRooms);
+        setFilteredRooms(availableRooms);
+        setHostels(hr.data.hostels || []);
+
+        lastOptionsLoadAtRef.current = now;
+      }
     
-    const availableRooms = rr.data.data.filter(r => r.occupied < r.capacity);
-    setAllRooms(availableRooms);
-    setFilteredRooms(availableRooms);
-    setHostels(hr.data.hostels || []);
-    
-    setForm({ student_id: '', hostel_id: '', room_id: '' });
-    setModal('allocate');
+      setForm({ student_id: '', hostel_id: '', room_id: '' });
+      setModal('allocate');
+    } catch {
+      toast.error('Failed to load allocation options.');
+    }
   };
 
   const handleHostelChange = (e) => {
@@ -56,10 +71,14 @@ export default function AllocationsPage() {
   };
 
   const openVacate = async () => {
-    const sr = await studentsAPI.getAll({ limit: 200 });
-    setStudents(sr.data.data.filter(s => s.room_id));
-    setVacateId('');
-    setModal('vacate');
+    try {
+      const sr = await studentsAPI.getAll({ limit: 200 });
+      setStudents((sr.data.data || []).filter(s => s.room_id));
+      setVacateId('');
+      setModal('vacate');
+    } catch {
+      toast.error('Failed to load students.');
+    }
   };
 
   const handleAllocate = async () => {
@@ -106,7 +125,7 @@ export default function AllocationsPage() {
     {
       key: 'room_number',
       label: 'Room',
-      render: (value, row) => <span className="font-mono font-semibold text-brand-primary">{value} (Block {row.block})</span>,
+      render: (value, row) => <span className="font-mono font-semibold text-brand-primary">{value} ({getHostelName(row.block)})</span>,
     },
     { key: 'allocated_at', label: 'Allocated', render: value => format(new Date(value), 'dd MMM yyyy, HH:mm') },
     { key: 'vacated_at', label: 'Vacated', render: value => value ? format(new Date(value), 'dd MMM yyyy, HH:mm') : 'N/A' },
@@ -161,7 +180,7 @@ export default function AllocationsPage() {
           </Select>
           <Select label="Select Room" value={form.room_id} onChange={e => setForm(f => ({ ...f, room_id: e.target.value }))}>
             <option value="">Choose room</option>
-            {filteredRooms.map(room => <option key={room.id} value={room.id}>{room.room_number} (Block {room.block}, {room.occupied}/{room.capacity} occupied)</option>)}
+            {filteredRooms.map(room => <option key={room.id} value={room.id}>{room.room_number} ({getHostelName(room.block)}, {room.occupied}/{room.capacity} occupied)</option>)}
           </Select>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setModal(null)}>Cancel</Button>

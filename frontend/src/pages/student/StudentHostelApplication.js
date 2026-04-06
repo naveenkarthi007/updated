@@ -4,8 +4,10 @@ import { hostelApplicationsAPI } from '../../services/api';
 import { Badge, Button, Select, PanelShell, PortalHero, EmptyState, Spinner } from '../../components/ui';
 import { format } from 'date-fns';
 import { BuildingIcon, FileTextIcon, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import useHostelNameMap from '../../hooks/useHostelNameMap';
 
 export default function StudentHostelApplication() {
+  const { hostels, getHostelName } = useHostelNameMap();
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -107,12 +109,11 @@ export default function StudentHostelApplication() {
                 <option value={3}>3rd Year</option>
                 <option value={4}>4th Year</option>
               </Select>
-              <Select label="Preferred Block (Optional)" value={preferredBlock} onChange={e => setPreferredBlock(e.target.value)}>
+              <Select label="Preferred Hostel (Optional)" value={preferredBlock} onChange={e => setPreferredBlock(e.target.value)}>
                 <option value="">No Preference</option>
-                <option value="A">Block A</option>
-                <option value="B">Block B</option>
-                <option value="C">Block C</option>
-                <option value="D">Block D</option>
+                {hostels.map((h) => (
+                  <option key={h.id} value={h.block_code}>{h.name}</option>
+                ))}
               </Select>
               <Select label="Preferred Room Type" value={preferredRoomType} onChange={e => setPreferredRoomType(e.target.value)}>
                 <option value="1">1 Cot</option>
@@ -147,8 +148,8 @@ export default function StudentHostelApplication() {
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-y-2 gap-x-8 text-sm">
                     <div>
-                      <span className="text-gray-500 text-xs uppercase tracking-wider font-medium block mb-1">Block Pref</span>
-                      <span className="text-gray-900 font-medium">{app.preferred_block || 'Any'}</span>
+                      <span className="text-gray-500 text-xs uppercase tracking-wider font-medium block mb-1">Hostel Pref</span>
+                      <span className="text-gray-900 font-medium">{app.preferred_block ? getHostelName(app.preferred_block) : 'Any'}</span>
                     </div>
                     <div>
                       <span className="text-gray-500 text-xs uppercase tracking-wider font-medium block mb-1">Room Pref</span>

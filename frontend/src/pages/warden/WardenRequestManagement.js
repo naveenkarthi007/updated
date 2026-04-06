@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { requestsAPI } from '../../services/api';
 import { Table, Badge, Button, Modal, Textarea, PageHeader, EmptyState } from '../../components/ui';
@@ -16,7 +16,7 @@ export default function WardenRequestManagement() {
   // Filters
   const [statusFilter, setStatusFilter] = useState('pending');
 
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     setLoading(true);
     try {
       const res = await requestsAPI.getAll({ status: statusFilter, limit: 100 });
@@ -26,12 +26,11 @@ export default function WardenRequestManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter]);
 
   useEffect(() => {
     fetchRequests();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter]);
+  }, [fetchRequests]);
 
   const handleReview = async (status) => {
     if (!selectedReq) return;

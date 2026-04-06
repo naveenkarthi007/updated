@@ -6,8 +6,10 @@ import { useAuth } from '../../context/AuthContext';
 import { Card, Badge, Spinner, Button, PageHeader } from '../../components/ui';
 import { format } from 'date-fns';
 import { AlertCircle, CheckCircle2, Clock, MapPin } from 'lucide-react';
+import useHostelNameMap from '../../hooks/useHostelNameMap';
 
 export default function StudentDashboard() {
+  const { getHostelName } = useHostelNameMap();
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,7 +28,7 @@ export default function StudentDashboard() {
     );
   }
 
-  const { student, roommates, complaintStats, recentNotices } = data;
+  const { student, complaintStats, recentNotices } = data;
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -93,7 +95,7 @@ export default function StudentDashboard() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-lg font-bold text-gray-900">Room Information</h2>
-              <p className="text-sm text-gray-500">Current room assignment and roommates</p>
+              <p className="text-sm text-gray-500">Current room assignment details</p>
             </div>
             {student?.room_number && (
               <Badge variant="success" className="px-3 py-1">Assigned</Badge>
@@ -108,8 +110,8 @@ export default function StudentDashboard() {
                   <div className="text-4xl font-black text-white drop-shadow-md">{student.room_number}</div>
                 </div>
                 <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center group hover:shadow-md transition-all">
-                  <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 group-hover:text-brand-primary transition-colors">Block</div>
-                  <div className="text-3xl font-black text-gray-800">{student.block}</div>
+                  <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 group-hover:text-brand-primary transition-colors">Hostel</div>
+                  <div className="text-3xl font-black text-gray-800">{getHostelName(student.block)}</div>
                 </div>
                 <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center group hover:shadow-md transition-all">
                   <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 group-hover:text-brand-primary transition-colors">Floor</div>
@@ -117,30 +119,6 @@ export default function StudentDashboard() {
                 </div>
               </div>
 
-              {roommates.length > 0 && (
-                <div className="pt-6 border-t border-gray-100 mt-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-gray-900">
-                      Roommates <span className="text-gray-400 font-medium ml-1">({roommates.length})</span>
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {roommates.map((roommate, i) => (
-                      <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-[#f8f9fa] border border-gray-100 hover:bg-white hover:shadow-md transition-all group">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-primary to-[#7e57c2] text-white flex items-center justify-center font-bold text-lg shadow-sm">
-                          {roommate.name[0]}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-bold text-gray-900 truncate group-hover:text-brand-primary transition-colors">{roommate.name}</div>
-                          <div className="text-xs font-semibold text-gray-500 mt-0.5">
-                            {roommate.department} <span className="text-gray-300 mx-1">•</span> Yr {roommate.year}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           ) : (
             <div className="py-12 flex flex-col items-center text-center bg-gray-50 rounded-xl border border-dashed border-gray-300">

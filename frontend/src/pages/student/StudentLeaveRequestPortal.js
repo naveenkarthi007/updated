@@ -3,7 +3,39 @@ import toast from 'react-hot-toast';
 import { CalendarClock, ClipboardCheck, Plus, Trash2 } from 'lucide-react';
 import { leavesAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import { Badge, Button, EmptyState, Input, MetricPanel, Modal, PanelShell, PortalHero, Spinner, Textarea } from '../../components/ui';
+import { Badge, Button, EmptyState, Input, MetricPanel, Modal, PanelShell, PortalHero, Select, Spinner, Textarea } from '../../components/ui';
+
+const LEAVE_TYPE_OPTIONS = [
+  { value: 'OnDuty - NPTEL Exam', label: 'OnDuty - NPTEL Exam' },
+  { value: 'OnDuty - Offcampus Placement', label: 'OnDuty - Offcampus Placement' },
+  { value: 'OnDuty - Training Course', label: 'Onduty - Training Course' },
+  { value: 'OnDuty - Govt Exams', label: 'Onduty - Govt Exams' },
+  { value: 'GP', label: 'GP' },
+  { value: 'OnDuty - Clubs', label: 'Onduty - Clubs' },
+  { value: 'Leave', label: 'Leave' },
+  { value: 'OnDuty - Events', label: 'OnDuty - Events' },
+  { value: 'OnDuty - Project Competition', label: 'OnDuty - Project Competition' },
+  { value: 'OnDuty - Internship', label: 'OnDuty - Internship' },
+  { value: 'OnDuty - Paper Presentation', label: 'OnDuty - Paper Presentation' },
+  { value: 'OnDuty - Technical Competition', label: 'OnDuty - Technical Competition' },
+  { value: 'OnDuty - NSS/NCC', label: 'OnDuty - NSS/NCC' },
+  { value: 'OnDuty - Sports', label: 'OnDuty - Sports' },
+  { value: 'Sick Leave', label: 'Sick Leave' },
+  { value: 'Emergency Leave', label: 'Emergency Leave' },
+];
+
+const LEAVE_REASON_PREFIX = 'Leave Type: ';
+
+const encodeLeaveReason = (type, reason) => `${LEAVE_REASON_PREFIX}${type}\n${reason}`;
+
+const decodeLeaveReason = (reason = '') => {
+  if (!reason.startsWith(LEAVE_REASON_PREFIX)) {
+    return { type: null, description: reason };
+  }
+  const [firstLine, ...rest] = reason.split('\n');
+  const type = firstLine.replace(LEAVE_REASON_PREFIX, '').trim();
+  return { type: type || null, description: rest.join('\n').trim() };
+};
 
 export default function StudentLeaveRequestPortal() {
   const { user } = useAuth();
@@ -11,7 +43,7 @@ export default function StudentLeaveRequestPortal() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
-  const [formData, setFormData] = useState({ from_date: '', to_date: '', reason: '' });
+  const [formData, setFormData] = useState({ from_date: '', to_date: '', leave_type: LEAVE_TYPE_OPTIONS[0].value, reason: '' });
 
   const fetchLeaves = useCallback(async () => {
     try {
@@ -49,10 +81,15 @@ export default function StudentLeaveRequestPortal() {
 
     try {
       setSubmitLoading(true);
-      await leavesAPI.create({ ...formData, student_id: user.student_id });
+      await leavesAPI.create({
+        from_date: formData.from_date,
+        to_date: formData.to_date,
+        reason: encodeLeaveReason(formData.leave_type, formData.reason),
+        student_id: user.student_id,
+      });
       toast.success('Leave request submitted');
       setIsModalOpen(false);
-      setFormData({ from_date: '', to_date: '', reason: '' });
+      setFormData({ from_date: '', to_date: '', leave_type: LEAVE_TYPE_OPTIONS[0].value, reason: '' });
       fetchLeaves();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to submit request');
@@ -104,6 +141,7 @@ export default function StudentLeaveRequestPortal() {
           <div className="space-y-4">
             {leaves.map(leave => {
               const days = Math.ceil((new Date(leave.to_date) - new Date(leave.from_date)) / (1000 * 60 * 60 * 24)) + 1;
+              const parsedReason = decodeLeaveReason(leave.reason || '');
               return (
                 <div key={leave.id} className="rounded-[28px] border border-brand-border/70 bg-[#fafbff] p-5">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -123,8 +161,12 @@ export default function StudentLeaveRequestPortal() {
                         </div>
                       </div>
                       <div className="rounded-[22px] border border-white bg-white px-4 py-3">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-muted">Leave Type</div>
+                        <div className="mt-2 text-sm font-semibold text-brand-text">{parsedReason.type || 'General'}</div>
+                      </div>
+                      <div className="rounded-[22px] border border-white bg-white px-4 py-3">
                         <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-muted">Reason</div>
-                        <div className="mt-2 text-sm leading-7 text-brand-text">{leave.reason}</div>
+                        <div className="mt-2 text-sm leading-7 text-brand-text">{parsedReason.description || '-'}</div>
                       </div>
                     </div>
 
@@ -145,6 +187,19 @@ export default function StudentLeaveRequestPortal() {
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Apply for Outpass" size="lg">
         <form onSubmit={handleCreate} className="grid gap-5">
           <div className="grid gap-4 md:grid-cols-2">
+            <Select
+              label="Type of Leave"
+              value={formData.leave_type}
+              onChange={event => setFormData(current => ({ ...current, leave_type: event.target.value }))}
+              required
+              className="h-14 rounded-[20px] bg-[#fbfbff] px-5"
+            >
+              {LEAVE_TYPE_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
             <Input type="date" label="From Date" required value={formData.from_date} onChange={event => setFormData(current => ({ ...current, from_date: event.target.value }))} className="h-14 rounded-[20px] bg-[#fbfbff] px-5" />
             <Input type="date" label="To Date" required value={formData.to_date} onChange={event => setFormData(current => ({ ...current, to_date: event.target.value }))} className="h-14 rounded-[20px] bg-[#fbfbff] px-5" />
           </div>

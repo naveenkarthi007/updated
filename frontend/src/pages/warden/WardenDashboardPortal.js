@@ -4,10 +4,12 @@ import { format } from 'date-fns';
 import { Building2, Home, ShieldCheck, UserPlus, Users } from 'lucide-react';
 import { wardenAPI } from '../../services/api';
 import { Badge, EmptyState, MetricPanel, PanelShell, PortalHero, Spinner } from '../../components/ui';
+import useHostelNameMap from '../../hooks/useHostelNameMap';
 
 const PIE_COLORS = ['#6366f1', '#a855f7', '#ec4899', '#3b82f6', '#14b8a6', '#f59e0b'];
 
 export default function WardenDashboardPortal() {
+  const { getHostelName } = useHostelNameMap();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -25,7 +27,7 @@ export default function WardenDashboardPortal() {
   const stats = data?.stats || {};
   const blockStats = data?.blockStats || [];
   const recentStudents = data?.recentStudents || [];
-  const pieData = blockStats.length > 0 ? blockStats.map(item => ({ name: `Block ${item.block}`, value: Number(item.occupied) || 0 })) : [{ name: 'No Data', value: 1 }];
+  const pieData = blockStats.length > 0 ? blockStats.map(item => ({ name: getHostelName(item.block), value: Number(item.occupied) || 0 })) : [{ name: 'No Data', value: 1 }];
   const totalCapacity = blockStats.reduce((sum, item) => sum + (Number(item.capacity) || 0), 0);
   const totalOccupied = blockStats.reduce((sum, item) => sum + (Number(item.occupied) || 0), 0);
   const availableSlots = Math.max(0, totalCapacity - totalOccupied);
@@ -48,7 +50,7 @@ export default function WardenDashboardPortal() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <PanelShell title="Occupancy by Block" description="Visual breakdown of occupied rooms across hostel blocks.">
+        <PanelShell title="Occupancy by Hostel" description="Visual breakdown of occupied rooms across hostels.">
           {pieData.length > 0 && pieData[0].value > 0 ? (
             <div className="space-y-4">
               <div className="h-72">
@@ -71,7 +73,7 @@ export default function WardenDashboardPortal() {
               </div>
             </div>
           ) : (
-            <EmptyState title="No occupancy data" description="Block occupancy statistics will appear here when room data is available." icon={<Building2 className="h-10 w-10" />} />
+            <EmptyState title="No occupancy data" description="Hostel occupancy statistics will appear here when room data is available." icon={<Building2 className="h-10 w-10" />} />
           )}
         </PanelShell>
 
@@ -114,8 +116,20 @@ export default function WardenDashboardPortal() {
                     <div className="mt-2 text-sm font-semibold text-brand-text">{student.register_no}</div>
                   </div>
                   <div className="rounded-[22px] border border-white bg-white px-4 py-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-muted">Room</div>
+                    <div className="mt-2 text-sm font-semibold text-brand-text">
+                      {student.room_number ? `${student.room_number} (${getHostelName(student.block)})` : 'Not Allocated'}
+                    </div>
+                  </div>
+                  <div className="rounded-[22px] border border-white bg-white px-4 py-3">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-muted">Added On</div>
                     <div className="mt-2 text-sm font-semibold text-brand-text">{format(new Date(student.created_at), 'dd MMM yyyy')}</div>
+                  </div>
+                  <div className="rounded-[22px] border border-white bg-white px-4 py-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-muted">Floor/Wing</div>
+                    <div className="mt-2 text-sm font-semibold capitalize text-brand-text">
+                      {student.floor ?? '—'} / {student.wing || '—'}
+                    </div>
                   </div>
                   <div className="flex items-center">
                     <Badge variant="info"><UserPlus className="mr-1 h-3.5 w-3.5" /> New Entry</Badge>

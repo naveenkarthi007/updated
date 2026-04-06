@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { myRoomAPI } from '../../services/api';
 import { BedDouble, Calendar, Building2, AlertCircle } from 'lucide-react';
 import { Spinner } from '../../components/ui';
+import useHostelNameMap from '../../hooks/useHostelNameMap';
 
 function InfoCard({ label, value, accent = false }) {
   return (
@@ -13,6 +14,7 @@ function InfoCard({ label, value, accent = false }) {
 }
 
 export default function StudentMyRoomPage() {
+  const { getHostelName } = useHostelNameMap();
   const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState('');
@@ -71,7 +73,7 @@ export default function StudentMyRoomPage() {
             <p className="text-sm text-white/70 font-medium">Room Number</p>
             <h2 className="text-4xl font-black tracking-tight mt-0.5">{room.roomNumber}</h2>
             <p className="text-white/80 text-sm mt-2">
-              Block {room.blockName} &nbsp;·&nbsp; Floor {room.floorNumber}
+              {getHostelName(room.blockName)} &nbsp;·&nbsp; Floor {room.floorNumber}
             </p>
           </div>
           <div className="text-right">
@@ -94,7 +96,7 @@ export default function StudentMyRoomPage() {
           </h3>
           <div className="grid grid-cols-2 gap-3">
             <InfoCard label="Room Type"    value={room.roomType} />
-            <InfoCard label="Block"        value={`Block ${room.blockName}`} />
+            <InfoCard label="Hostel"       value={getHostelName(room.blockName)} />
             <InfoCard label="Floor"        value={`Floor ${room.floorNumber}`} />
             <InfoCard label="Status"       value={room.status} />
           </div>
@@ -143,6 +145,7 @@ export default function StudentMyRoomPage() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

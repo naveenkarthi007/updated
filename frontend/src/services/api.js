@@ -4,6 +4,75 @@ import toast from 'react-hot-toast';
 /* eslint-disable no-undef */
 const api = axios.create({ baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api', timeout: 10000 });
 
+// Lightweight in-memory request cache + in-flight dedupe.
+// Goal: avoid request storms from rapid UI changes / repeated mounts.
+const __cache = new Map(); // key -> { expiresAt:number, value:any }
+const __inflight = new Map(); // key -> Promise
+
+const now = () => Date.now();
+
+const stableKey = (method, url, config) => {
+  const params = config?.params ? JSON.stringify(config.params) : '';
+  return `${method.toUpperCase()} ${url} ${params}`;
+};
+
+const readStorage = (key) => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+};
+
+const writeStorage = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // ignore quota / private mode
+  }
+};
+
+async function requestCached(method, url, config = {}, opts = {}) {
+  const {
+    cacheKey = stableKey(method, url, config),
+    ttlMs = 0,
+    persist = false, // localStorage
+    storageKey = `api-cache:${cacheKey}`,
+    dedupe = true,
+  } = opts;
+
+  if (ttlMs > 0) {
+    const hit = __cache.get(cacheKey);
+    if (hit && hit.expiresAt > now()) return hit.value;
+
+    if (persist) {
+      const persisted = readStorage(storageKey);
+      if (persisted?.expiresAt > now()) return persisted.value;
+    }
+  }
+
+  if (dedupe) {
+    const inFlight = __inflight.get(cacheKey);
+    if (inFlight) return inFlight;
+  }
+
+  const p = api.request({ method, url, ...config }).then((res) => {
+    if (ttlMs > 0) {
+      const entry = { expiresAt: now() + ttlMs, value: res };
+      __cache.set(cacheKey, entry);
+      if (persist) writeStorage(storageKey, entry);
+    }
+    return res;
+  }).finally(() => {
+    __inflight.delete(cacheKey);
+  });
+
+  __inflight.set(cacheKey, p);
+  return p;
+}
+
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -115,7 +184,8 @@ export const leavesAPI = {
 };
 
 export const messMenuAPI = {
-  getAll: ()  => api.get('/mess-menu'),
+  // changes rarely; cache for 10 minutes (also persist between reloads)
+  getAll: ()  => requestCached('get', '/mess-menu', {}, { ttlMs: 10 * 60 * 1000, persist: true }),
   update: (d) => api.put('/mess-menu', d),
 };
 
@@ -150,7 +220,8 @@ export const attendanceAPI = {
 };
 
 export const staffDirectoryAPI = {
-  getAll: () => api.get('/staff-directory'),
+  // read-mostly; cache for 30 minutes (persist)
+  getAll: () => requestCached('get', '/staff-directory', {}, { ttlMs: 30 * 60 * 1000, persist: true }),
 };
 
 export const usersAPI = {
@@ -179,7 +250,8 @@ export const messagesAPI = {
 
 // ── Hostels ───────────────────────────────────────────────────
 export const hostelsAPI = {
-  getAll:          ()      => api.get('/hostels'),
+  // read-mostly; cache for 10 minutes (persist)
+  getAll:          ()      => requestCached('get', '/hostels', {}, { ttlMs: 10 * 60 * 1000, persist: true }),
   create:          (d)     => api.post('/hostels', d),
   update:          (id, d) => api.put(`/hostels/${id}`, d),
   delete:          (id)    => api.delete(`/hostels/${id}`),

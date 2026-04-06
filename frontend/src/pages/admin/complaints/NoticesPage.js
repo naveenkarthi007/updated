@@ -4,6 +4,7 @@ import { Button, Badge, Input, Select, Textarea, Modal, PageHeader, Spinner } fr
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { noticesAPI } from '../../../services/api';
+import useHostelNameMap from '../../../hooks/useHostelNameMap';
 
 
 
@@ -13,6 +14,16 @@ export default function NoticesPage() {
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState({ title: '', content: '', category: 'general', target: 'all' });
   const [saving, setSaving] = useState(false);
+  const { hostels, getHostelName } = useHostelNameMap();
+
+  const getTargetLabel = (target) => {
+    if (!target || target === 'all') return 'All Students';
+    if (String(target).startsWith('block_')) {
+      const blockCode = String(target).replace('block_', '').toUpperCase();
+      return getHostelName(blockCode);
+    }
+    return getHostelName(target);
+  };
 
   const load = () => {
     setLoading(true);
@@ -88,7 +99,7 @@ export default function NoticesPage() {
                   
                   <div className="flex items-center gap-3 text-xs text-gray-400">
                     <span>{format(new Date(notice.created_at), 'dd MMM yyyy, h:mm a')}</span>
-                    <span>Target: {notice.target === 'all' ? 'All Students' : notice.target}</span>
+                    <span>Target: {getTargetLabel(notice.target)}</span>
                     {notice.posted_by_name && <span>By: {notice.posted_by_name}</span>}
                   </div>
                 </div>
@@ -112,10 +123,13 @@ export default function NoticesPage() {
             </Select>
             <Select label="Target Audience" value={form.target} onChange={e => setForm(f => ({ ...f, target: e.target.value }))}>
               <option value="all">All Students</option>
-              <option value="block_a">Block A</option>
-              <option value="block_b">Block B</option>
-              <option value="block_c">Block C</option>
-              <option value="block_d">Block D</option>
+              {hostels
+                .filter((h) => h?.block_code)
+                .map((h) => (
+                  <option key={h.id || h.block_code} value={`block_${String(h.block_code).toLowerCase()}`}>
+                    {h.name || `Hostel ${h.block_code}`}
+                  </option>
+                ))}
             </Select>
           </div>
           <Textarea label="Message" value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} placeholder="Notice content..." rows={4} />

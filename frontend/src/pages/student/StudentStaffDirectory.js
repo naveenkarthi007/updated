@@ -56,7 +56,7 @@ export default function StudentStaffDirectory() {
                      <h3 className="text-lg font-bold text-gray-900 leading-tight">{member.name}</h3>
                      <div className="mt-1 flex flex-wrap gap-1.5">
                        <Badge variant={member.role === 'admin' ? 'purple' : member.role === 'warden' ? 'info' : 'success'} className="capitalize">
-                         {member.role === 'caretaker' ? 'Staff' : member.role}
+                         {member.role === 'caretaker' ? 'Caretaker' : member.role}
                        </Badge>
                        {member.specialty && <Badge variant="outline" className="capitalize">{member.specialty.replace('_', ' ')}</Badge>}
                      </div>

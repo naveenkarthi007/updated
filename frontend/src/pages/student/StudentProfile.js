@@ -3,8 +3,10 @@ import { motion } from 'framer-motion';
 import { studentPortalAPI } from '../../services/api';
 import { Spinner } from '../../components/ui';
 import { AlertCircle, Mail, Phone, MapPin, Building2, BookOpen, Calendar, CheckCircle2, BedDouble, ShieldCheck } from 'lucide-react';
+import useHostelNameMap from '../../hooks/useHostelNameMap';
 
 export default function StudentProfile() {
+  const { getHostelName } = useHostelNameMap();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -181,8 +183,8 @@ export default function StudentProfile() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="p-4 rounded-2xl bg-[#f8f9fa] border border-gray-100 flex flex-col items-center justify-center text-center">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Block</p>
-                        <p className="text-lg font-bold text-gray-800">{profile.block}</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Hostel</p>
+                        <p className="text-lg font-bold text-gray-800">{getHostelName(profile.block)}</p>
                       </div>
                       <div className="p-4 rounded-2xl bg-[#f8f9fa] border border-gray-100 flex flex-col items-center justify-center text-center">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Floor</p>

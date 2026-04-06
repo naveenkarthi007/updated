@@ -5,10 +5,12 @@ import { Spinner, Badge, StatCard, PageHeader, Card } from '../../components/ui'
 import { Users, Home, AlertCircle, Building2, UserPlus, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import useHostelNameMap from '../../hooks/useHostelNameMap';
 
 const PIE_COLORS = ['#6366f1', '#a855f7', '#ec4899', '#3b82f6', '#14b8a6', '#f59e0b'];
 
 export default function WardenDashboard() {
+  const { getHostelName } = useHostelNameMap();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -31,7 +33,7 @@ export default function WardenDashboard() {
   const recentStudents = data?.recentStudents || [];
 
   const pieData = blockStats.length > 0
-    ? blockStats.map((b) => ({ name: `Block ${b.block}`, value: Number(b.occupied) || 0 }))
+    ? blockStats.map((b) => ({ name: getHostelName(b.block), value: Number(b.occupied) || 0 }))
     : [{ name: 'No Data', value: 1 }];
 
   const totalCapacity = blockStats.reduce((sum, b) => sum + (Number(b.capacity) || 0), 0);
@@ -55,7 +57,7 @@ export default function WardenDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-6">Occupancy by Block</h2>
+          <h2 className="text-lg font-bold text-gray-900 mb-6">Occupancy by Hostel</h2>
           {pieData.length > 0 && pieData[0].value > 0 ? (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">

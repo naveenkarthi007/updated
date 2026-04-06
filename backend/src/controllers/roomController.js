@@ -5,17 +5,32 @@ const getAll = async (req, res) => {
   try {
     const { block, status, hostel_id } = req.query;
     let where = '1=1'; const params = [];
-    if (block)  { where += ' AND block=?'; params.push(block); }
-    if (status) { where += ' AND status=?'; params.push(status); }
-    if (hostel_id) { where += ' AND hostel_id=?'; params.push(hostel_id); }
-    const [rows] = await pool.query(`SELECT * FROM rooms WHERE ${where} ORDER BY block,floor,room_number`, params);
+    if (block)  { where += ' AND r.block=?'; params.push(block); }
+    if (status) { where += ' AND r.status=?'; params.push(status); }
+    if (hostel_id) { where += ' AND h.id=?'; params.push(hostel_id); }
+    const [rows] = await pool.query(
+      `SELECT r.*, h.id AS hostel_id, h.name AS hostel_name
+       FROM rooms r
+       LEFT JOIN hostels h
+         ON UPPER(REPLACE(h.block_code, 'BLOCK_', '')) = UPPER(REPLACE(r.block, 'BLOCK_', ''))
+       WHERE ${where}
+       ORDER BY r.block, r.floor, r.room_number`,
+      params
+    );
     res.json({ success: true, data: rows });
   } catch (err) { console.error('Error in ' + __filename + ':', err); res.status(500).json({ success: false, message: 'Server error.' }); }
 };
 
 const getOne = async (req, res) => {
   try {
-    const [room] = await pool.query('SELECT * FROM rooms WHERE id=?', [req.params.id]);
+    const [room] = await pool.query(
+      `SELECT r.*, h.id AS hostel_id, h.name AS hostel_name
+       FROM rooms r
+       LEFT JOIN hostels h
+         ON UPPER(REPLACE(h.block_code, 'BLOCK_', '')) = UPPER(REPLACE(r.block, 'BLOCK_', ''))
+       WHERE r.id=?`,
+      [req.params.id]
+    );
     if (!room.length) return res.status(404).json({ success: false, message: 'Room not found.' });
     const [students] = await pool.query('SELECT id,name,register_no,department,year FROM students WHERE room_id=?', [req.params.id]);
     res.json({ success: true, data: { ...room[0], students } });
@@ -23,14 +38,14 @@ const getOne = async (req, res) => {
 };
 
 const create = async (req, res) => {
-  const { room_number, block, floor, wing, capacity, room_type, hostel_name, hostel_id } = req.body;
+  const { room_number, block, floor, wing, capacity, room_type } = req.body;
   if (!room_number || !block || !floor || !capacity)
     return res.status(400).json({ success: false, message: 'room_number, block, floor, capacity required.' });
   try {
     const status = 'available'; // New room is always available
     const [result] = await pool.query(
-      'INSERT INTO rooms (room_number,block,floor,wing,capacity,room_type,hostel_name,hostel_id,status,occupied) VALUES (?,?,?,?,?,?,?,?,?,?)',
-      [room_number, block, floor, wing || null, capacity, room_type || 'triple', hostel_name || null, hostel_id || null, status, 0]
+      'INSERT INTO rooms (room_number,block,floor,wing,capacity,room_type,status,occupied) VALUES (?,?,?,?,?,?,?,?)',
+      [room_number, block, floor, wing || null, capacity, room_type || 'triple', status, 0]
     );
     res.status(201).json({ success: true, message: 'Room created.', id: result.insertId });
   } catch (err) {
@@ -40,7 +55,7 @@ const create = async (req, res) => {
 };
 
 const update = async (req, res) => {
-  const { capacity, room_type, wing, hostel_name, hostel_id } = req.body;
+  const { capacity, room_type, wing } = req.body;
   let { status } = req.body;
   try {
     // Automatically recalculate status if not explicitly overriden to maintenance
@@ -55,14 +70,6 @@ const update = async (req, res) => {
     if (Object.prototype.hasOwnProperty.call(req.body, 'wing')) {
       sql += ', wing=?';
       params.push(wing || null);
-    }
-    if (Object.prototype.hasOwnProperty.call(req.body, 'hostel_name')) {
-      sql += ', hostel_name=?';
-      params.push(hostel_name || null);
-    }
-    if (Object.prototype.hasOwnProperty.call(req.body, 'hostel_id')) {
-      sql += ', hostel_id=?';
-      params.push(hostel_id || null);
     }
     sql += ' WHERE id=?';
     params.push(req.params.id);
@@ -83,7 +90,11 @@ const remove = async (req, res) => {
 const exportCSV = async (req, res) => {
   try {
     const [rows] = await pool.query(
-      'SELECT room_number, hostel_name, block, floor, capacity, occupied, room_type, status FROM rooms ORDER BY block, floor, room_number'
+      `SELECT r.room_number, h.name AS hostel_name, r.block, r.floor, r.capacity, r.occupied, r.room_type, r.status
+       FROM rooms r
+       LEFT JOIN hostels h
+         ON UPPER(REPLACE(h.block_code, 'BLOCK_', '')) = UPPER(REPLACE(r.block, 'BLOCK_', ''))
+       ORDER BY r.block, r.floor, r.room_number`
     );
     const parser = new Parser({ fields: ['room_number','hostel_name','block','floor','capacity','occupied','room_type','status'] });
     const csv = parser.parse(rows);

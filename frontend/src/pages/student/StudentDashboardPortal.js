@@ -5,8 +5,10 @@ import { AlertCircle, CheckCircle2, Clock, MapPin, Sparkles } from 'lucide-react
 import { studentPortalAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { Badge, Button, EmptyState, MetricPanel, PanelShell, PortalHero, Spinner } from '../../components/ui';
+import useHostelNameMap from '../../hooks/useHostelNameMap';
 
 export default function StudentDashboardPortal() {
+  const { getHostelName } = useHostelNameMap();
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -14,7 +16,7 @@ export default function StudentDashboardPortal() {
   useEffect(() => {
     studentPortalAPI.getDashboard()
       .then(response => setData(response.data.data))
-      .catch(() => setData({ student: null, roommates: [], complaintStats: {}, recentNotices: [] }))
+      .catch(() => setData({ student: null, complaintStats: {}, recentNotices: [] }))
       .finally(() => setLoading(false));
   }, []);
 
@@ -26,14 +28,14 @@ export default function StudentDashboardPortal() {
     );
   }
 
-  const { student, roommates = [], complaintStats = {}, recentNotices = [] } = data || {};
+  const { student, complaintStats = {}, recentNotices = [] } = data || {};
 
   return (
     <div className="space-y-6">
       <PortalHero
         eyebrow="Student Portal"
         title={`Welcome back, ${user?.name || 'Resident'}`}
-        description="Review room allocation, roommate details, service requests, and latest hostel updates from one unified dashboard."
+        description="Review room allocation, service requests, and latest hostel updates from one unified dashboard."
         accent="primary"
         icon={<Sparkles className="h-4 w-4" />}
         actions={
@@ -58,7 +60,7 @@ export default function StudentDashboardPortal() {
       <div className="grid gap-6 xl:grid-cols-[1.55fr_1fr]">
         <PanelShell
           title="Room Overview"
-          description="Current allocation details and the residents sharing your room."
+          description="Current allocation details for your assigned room."
           action={student?.room_number ? <Badge variant="success">Assigned</Badge> : <Badge variant="warning">Pending Allocation</Badge>}
         >
           {student?.room_number ? (
@@ -69,8 +71,8 @@ export default function StudentDashboardPortal() {
                   <div className="mt-3 font-display text-5xl font-black tracking-[-0.04em]">{student.room_number}</div>
                 </div>
                 <div className="rounded-[28px] border border-brand-border/70 bg-[#fafbff] p-6">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-muted">Block</div>
-                  <div className="mt-3 font-display text-4xl font-black tracking-[-0.04em] text-brand-text">{student.block}</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-muted">Hostel</div>
+                  <div className="mt-3 font-display text-4xl font-black tracking-[-0.04em] text-brand-text">{getHostelName(student.block)}</div>
                 </div>
                 <div className="rounded-[28px] border border-brand-border/70 bg-[#fafbff] p-6">
                   <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-muted">Floor</div>
@@ -89,26 +91,6 @@ export default function StudentDashboardPortal() {
                 </div>
               </div>
 
-              <div>
-                <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">Roommates</div>
-                {roommates.length > 0 ? (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {roommates.map(roommate => (
-                      <div key={roommate.id || roommate.register_no} className="flex items-center gap-4 rounded-[26px] border border-brand-border/70 bg-white px-4 py-4 shadow-sm">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-primary to-[#7e57c2] text-sm font-bold text-white">
-                          {roommate.name?.charAt(0)?.toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="truncate text-base font-semibold text-brand-text">{roommate.name}</div>
-                          <div className="mt-1 text-sm text-brand-muted">{roommate.department} • Year {roommate.year}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState title="No roommate details available" description="Roommate information will appear here when the hostel records are updated." />
-                )}
-              </div>
             </div>
           ) : (
             <div className="rounded-[28px] border border-dashed border-gray-300 bg-[#fafbff] px-6 py-12">

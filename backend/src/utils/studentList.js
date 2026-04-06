@@ -8,6 +8,23 @@ function normalizeWing(w) {
   return null;
 }
 
+function normalizeBlock(b) {
+  if (b == null || b === '') return null;
+  const raw = String(b).trim();
+  const x = raw.toUpperCase();
+  if (/^BLOCK_[A-Z]$/.test(x)) return x.replace('BLOCK_', '');
+  if (/^[A-Z]$/.test(x)) return x;
+  return raw;
+}
+
+function isSingleBlockCode(v) {
+  return /^[A-Z]$/.test(String(v || '').toUpperCase());
+}
+
+function toComparableBlock(v) {
+  return String(v || '').trim().toUpperCase().replace(/^BLOCK_/, '');
+}
+
 /**
  * @param {object} options
  * @param {'admin'|'warden'} options.mode
@@ -16,6 +33,9 @@ function normalizeWing(w) {
  */
 async function listStudents({ mode, wardenScopes, query }) {
   const { search, dept, year, page = 1, limit = 20, block, floor, wing } = query;
+  const blockFilter = normalizeBlock(block);
+  const effectiveWingExpr =
+    "COALESCE(s.wing, r.wing, CASE WHEN r.room_number IS NOT NULL THEN IF(MOD(CAST(SUBSTRING_INDEX(r.room_number, '-', -1) AS UNSIGNED), 2) = 0, 'right', 'left') END)";
   let where = '1=1';
   const params = [];
 
@@ -38,7 +58,7 @@ async function listStudents({ mode, wardenScopes, query }) {
       return { rows: [], total: 0, page: parseInt(page, 10), limit: parseInt(limit, 10) };
     }
     let refined = [...wardenScopes];
-    if (block) refined = refined.filter((s) => s.block === block);
+    if (blockFilter) refined = refined.filter((s) => toComparableBlock(s.block) === toComparableBlock(blockFilter));
     if (floor !== undefined && floor !== '' && floor != null) {
       refined = refined.filter((s) => Number(s.floor) === Number(floor));
     }
@@ -48,17 +68,22 @@ async function listStudents({ mode, wardenScopes, query }) {
       return { rows: [], total: 0, page: parseInt(page, 10), limit: parseInt(limit, 10) };
     }
     wardenScopes = refined;
-    where += ' AND COALESCE(s.wing, r.wing) IS NOT NULL';
+    where += ` AND ${effectiveWingExpr} IS NOT NULL`;
     const orParts = [];
     for (const sc of wardenScopes) {
-      orParts.push('(r.block = ? AND COALESCE(s.floor, r.floor) = ? AND COALESCE(s.wing, r.wing) = ?)');
+      orParts.push(`(r.block = ? AND COALESCE(s.floor, r.floor) = ? AND ${effectiveWingExpr} = ?)`);
       params.push(sc.block, Number(sc.floor), sc.wing);
     }
     where += ` AND (${orParts.join(' OR ')})`;
   } else {
-    if (block) {
-      where += ' AND r.block = ?';
-      params.push(block);
+    if (blockFilter) {
+      if (isSingleBlockCode(blockFilter)) {
+        where += " AND (REPLACE(UPPER(r.block), 'BLOCK_', '') = ?)";
+        params.push(String(blockFilter).toUpperCase());
+      } else {
+        where += " AND (REPLACE(UPPER(r.block), 'BLOCK_', '') = REPLACE(UPPER(?), 'BLOCK_', '') OR UPPER(r.block) = UPPER(?) OR EXISTS (SELECT 1 FROM hostels h WHERE UPPER(h.name) = UPPER(?) AND REPLACE(UPPER(h.block_code), 'BLOCK_', '') = REPLACE(UPPER(r.block), 'BLOCK_', '')))";
+        params.push(blockFilter, blockFilter, blockFilter);
+      }
     }
     if (floor !== undefined && floor !== '' && floor != null) {
       where += ' AND COALESCE(s.floor, r.floor) = ?';
@@ -66,7 +91,7 @@ async function listStudents({ mode, wardenScopes, query }) {
     }
     const nw = normalizeWing(wing);
     if (nw) {
-      where += ' AND COALESCE(s.wing, r.wing) = ?';
+      where += ` AND ${effectiveWingExpr} = ?`;
       params.push(nw);
     }
   }
@@ -81,7 +106,7 @@ async function listStudents({ mode, wardenScopes, query }) {
 
   const selectSql = `SELECT s.*, r.room_number, r.block, r.floor AS room_floor, r.wing AS room_wing,
        COALESCE(s.floor, r.floor) AS effective_floor,
-       COALESCE(s.wing, r.wing) AS effective_wing
+       ${effectiveWingExpr} AS effective_wing
        ${baseFrom}
        ORDER BY s.created_at DESC LIMIT ? OFFSET ?`;
 
@@ -96,4 +121,4 @@ async function listStudents({ mode, wardenScopes, query }) {
   };
 }
 
-module.exports = { listStudents, normalizeWing };
+module.exports = { listStudents, normalizeWing, normalizeBlock };

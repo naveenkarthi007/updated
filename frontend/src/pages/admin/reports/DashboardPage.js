@@ -4,10 +4,12 @@ import { dashboardAPI } from '../../../services/api';
 import { Spinner, StatCard, PageHeader, Card } from '../../../components/ui';
 import { Building2, Home, Users, CheckCircle, Clock } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import useHostelNameMap from '../../../hooks/useHostelNameMap';
 
 const PIE_COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#0EA5E9', '#8B5CF6'];
 
 export default function DashboardPage() {
+  const { getHostelName } = useHostelNameMap();
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -24,7 +26,7 @@ export default function DashboardPage() {
 
   const pieData = blockStats.length > 0 
     ? blockStats.map((b) => ({
-        name: `Block ${b.block}`,
+        name: getHostelName(b.block),
         value: Number(b.occupied) || 0
       }))
     : [{ name: 'No Data', value: 1 }];
@@ -57,7 +59,7 @@ export default function DashboardPage() {
 
         <div className="lg:col-span-4">
           <Card className="p-6 h-full flex flex-col">
-            <h2 className="text-lg font-bold text-gray-900 mb-6">Occupancy by Block</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-6">Occupancy by Hostel</h2>
             <div className="flex-1 min-h-[240px] relative">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>

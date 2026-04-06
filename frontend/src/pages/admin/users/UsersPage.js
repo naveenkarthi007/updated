@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { usersAPI } from '../../../services/api';
 import { Table, Badge, Button, Input, Select, Modal, PageHeader, EmptyState } from '../../../components/ui';
 import { format } from 'date-fns';
 import { UsersIcon, UserPlus, ShieldIcon, Wrench, Trash2, Edit2 } from 'lucide-react';
+import useDebouncedValue from '../../../hooks/useDebouncedValue';
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -11,29 +12,28 @@ export default function UsersPage() {
   
   const [roleFilter, setRoleFilter] = useState('');
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
   
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'warden', specialty: '' });
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await usersAPI.getAll({ role: roleFilter, search });
+      const res = await usersAPI.getAll({ role: roleFilter, search: debouncedSearch });
       setUsers(res.data.data || []);
     } catch (err) {
       toast.error('Failed to load users');
     } finally {
       setLoading(false);
     }
-  };
+  }, [roleFilter, debouncedSearch]);
 
   useEffect(() => {
-    const timer = setTimeout(fetchUsers, 300);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roleFilter, search]);
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleOpenForm = (user = null) => {
     if (user) {
@@ -93,7 +93,7 @@ export default function UsersPage() {
       <div className="flex items-center gap-2">
          {val === 'admin' ? <ShieldIcon className="w-4 h-4 text-purple-500" /> : val === 'warden' ? <UsersIcon className="w-4 h-4 text-blue-500" /> : val === 'caretaker' ? <Wrench className="w-4 h-4 text-emerald-500" /> : <UsersIcon className="w-4 h-4 text-gray-400" />}
          <div>
-            <Badge variant={val === 'admin' ? 'purple' : val === 'warden' ? 'info' : val === 'caretaker' ? 'success' : 'default'} className="capitalize">{val === 'caretaker' ? 'Staff' : val}</Badge>
+            <Badge variant={val === 'admin' ? 'purple' : val === 'warden' ? 'info' : val === 'caretaker' ? 'success' : 'default'} className="capitalize">{val === 'caretaker' ? 'Caretaker' : val}</Badge>
             {row.specialty && <div className="text-[10px] uppercase font-bold text-gray-500 mt-1 pl-1 tracking-wider">{row.specialty.replace('_', ' ')}</div>}
          </div>
       </div>
@@ -113,7 +113,7 @@ export default function UsersPage() {
       <PageHeader
         eyebrow="System Administration"
         title="User Management"
-        description="Add and manage administrative users, wardens, and support staff."
+        description="Add and manage administrative users, wardens, and caretakers."
         actions={<Button onClick={() => handleOpenForm()} className="gap-2"><UserPlus className="w-4 h-4"/> Add User</Button>}
       />
 
@@ -123,7 +123,7 @@ export default function UsersPage() {
            <option value="">All Roles</option>
            <option value="admin">Administrators</option>
            <option value="warden">Wardens</option>
-           <option value="caretaker">Support Staff</option>
+           <option value="caretaker">Caretakers</option>
          </Select>
       </div>
 
@@ -151,7 +151,7 @@ export default function UsersPage() {
                  {[
                    { id: 'admin', label: 'Admin', icon: <ShieldIcon className="w-4 h-4 mb-2 mx-auto"/>, color: 'purple' },
                    { id: 'warden', label: 'Warden', icon: <UsersIcon className="w-4 h-4 mb-2 mx-auto"/>, color: 'blue' },
-                   { id: 'caretaker', label: 'Staff', icon: <Wrench className="w-4 h-4 mb-2 mx-auto"/>, color: 'emerald' },
+                   { id: 'caretaker', label: 'Caretaker', icon: <Wrench className="w-4 h-4 mb-2 mx-auto"/>, color: 'emerald' },
                  ].map(r => (
                    <label key={r.id} className={`cursor-pointer border-2 rounded-xl p-3 text-center transition-all ${formData.role === r.id ? `border-${r.color}-500 bg-${r.color}-50 text-${r.color}-700` : 'border-gray-100 text-gray-500 hover:border-gray-300 hover:bg-gray-50'}`}>
                       <input type="radio" className="hidden" name="role" value={r.id} checked={formData.role === r.id} onChange={e => setFormData({...formData, role: e.target.value})} />

@@ -1,14 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { hostelsAPI, usersAPI } from '../../../services/api';
 import toast from 'react-hot-toast';
-import { Building2, Plus, Pencil, Trash2, X, Check } from 'lucide-react';
-import { Spinner, Table, Button, Badge, SectionCard } from '../../../components/ui';
+import { Plus, Pencil, Trash2, X, Check } from 'lucide-react';
+import { Spinner, Table, Button, SectionCard } from '../../../components/ui';
 
-const GENDER_LABELS = { MALE: 'Boys Hostel', FEMALE: 'Girls Hostel', COED: 'Co-ed Hostel' };
+const GENDER_LABELS = { MALE: 'Boys Hostel', FEMALE: 'Girls Hostel' };
 const GENDER_COLORS = {
   MALE:   'bg-blue-50 text-blue-700 border border-blue-200',
   FEMALE: 'bg-pink-50 text-pink-700 border border-pink-200',
-  COED:   'bg-purple-50 text-purple-700 border border-purple-200',
 };
 
 const emptyForm = { name: '', block_code: '', gender: 'MALE', total_rooms: '', capacity: '', warden_id: '' };
@@ -55,7 +54,7 @@ function HostelModal({ hostel, wardens, onSave, onClose }) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Block Code</label>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Hostel Code</label>
               <input
                 value={form.block_code} onChange={e => setForm({ ...form, block_code: e.target.value })}
                 placeholder="A, B, C…"
@@ -70,7 +69,6 @@ function HostelModal({ hostel, wardens, onSave, onClose }) {
               >
                 <option value="MALE">Boys Hostel</option>
                 <option value="FEMALE">Girls Hostel</option>
-                <option value="COED">Co-ed</option>
               </select>
             </div>
           </div>
@@ -126,7 +124,6 @@ export default function AdminHostelsPage() {
   const [loading,     setLoading]     = useState(true);
   const [showModal,   setShowModal]   = useState(false);
   const [editHostel,  setEditHostel]  = useState(null);
-  const [deleteId,    setDeleteId]    = useState(null);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -165,8 +162,8 @@ export default function AdminHostelsPage() {
 
   const columns = [
     { key: 'name', label: 'Hostel Name', render: (val) => <span className="font-bold text-gray-900">{val}</span> },
-    { key: 'block_code', label: 'Block', render: val => val ? `Block ${val}` : '-' },
-    { key: 'gender', label: 'Gender', render: val => <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${GENDER_COLORS[val] || GENDER_COLORS.COED}`}>{GENDER_LABELS[val] || val}</span> },
+    { key: 'block_code', label: 'Hostel Code', render: val => val || '-' },
+    { key: 'gender', label: 'Gender', render: val => <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${GENDER_COLORS[val] || 'bg-gray-100 text-gray-700 border border-gray-200'}`}>{GENDER_LABELS[val] || val}</span> },
     { key: 'warden_name', label: 'Warden', render: val => val || 'Not assigned' },
     { key: 'total_rooms', label: 'Total Rooms', render: (val, row) => <span>{val} (Actual: {row.actual_room_count || 0})</span> },
     { key: 'capacity', label: 'Capacity', render: val => val || 0 },
@@ -180,7 +177,6 @@ export default function AdminHostelsPage() {
 
   const maleHostels   = hostels.filter(h => h.gender === 'MALE');
   const femaleHostels = hostels.filter(h => h.gender === 'FEMALE');
-  // const coedHostels   = hostels.filter(h => h.gender === 'COED');
   const totalRooms    = hostels.reduce((s, h) => s + (h.actual_room_count || 0), 0);
 
   if (loading) return (
@@ -195,7 +191,7 @@ export default function AdminHostelsPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Hostels Management</h1>
-          <p className="text-sm text-brand-muted mt-0.5">Manage hostel blocks and their warden assignments</p>
+          <p className="text-sm text-brand-muted mt-0.5">Manage hostel records and their warden assignments</p>
         </div>
         <button
           onClick={() => { setEditHostel(null); setShowModal(true); }}
