@@ -1,5 +1,7 @@
 const { pool } = require('../config/database');
 const { findBestStaff } = require('../services/smartRouter');
+const path = require('path');
+const fs = require('fs');
 
 const getFloorWardens = async (block, floor) => {
   if (!block || !floor) return [];
@@ -139,15 +141,22 @@ const fileComplaint = async (req, res) => {
     const staff = await findBestStaff(cat);
     const assignedTo = staff ? staff.id : null;
 
+    // Handle file attachment (optional)
+    let attachmentUrl = null;
+    if (req.file) {
+      attachmentUrl = `/uploads/complaints/${req.file.filename}`;
+    }
+
     const [result] = await pool.query(
-      'INSERT INTO complaints (student_id, title, description, category, priority, assigned_to) VALUES (?,?,?,?,?,?)',
-      [student.id, title, description, cat, priority || 'medium', assignedTo]
+      'INSERT INTO complaints (student_id, title, description, category, priority, assigned_to, attachment_url) VALUES (?,?,?,?,?,?,?)',
+      [student.id, title, description, cat, priority || 'medium', assignedTo, attachmentUrl]
     );
     res.status(201).json({
       success: true,
       message: staff ? `Complaint filed and auto-assigned to ${staff.name}.` : 'Complaint filed.',
       id: result.insertId,
       assigned_to: staff,
+      attachment_url: attachmentUrl,
     });
   } catch (err) {
     console.error(err);
@@ -162,7 +171,7 @@ const updateMyComplaint = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Profile not linked.' });
 
     const [[complaint]] = await pool.query(
-      'SELECT id, status FROM complaints WHERE id=? AND student_id=?',
+      'SELECT id, status, attachment_url FROM complaints WHERE id=? AND student_id=?',
       [req.params.id, student.id]
     );
     if (!complaint)
@@ -174,9 +183,29 @@ const updateMyComplaint = async (req, res) => {
     if (!title)
       return res.status(400).json({ success: false, message: 'Title is required.' });
 
+    // Handle file attachment replacement
+    let attachmentUrl = undefined; // undefined = don't update
+    if (req.file) {
+      attachmentUrl = `/uploads/complaints/${req.file.filename}`;
+      // Clean up old attachment if it exists
+      if (complaint.attachment_url) {
+        const oldPath = path.join(__dirname, '..', '..', complaint.attachment_url);
+        fs.unlink(oldPath, () => {}); // fire-and-forget
+      }
+    }
+
+    // Fetch current attachment_url for the update
+    const fields = ['title=?', 'description=?', 'category=?', 'priority=?'];
+    const params = [title, description || null, category || 'other', priority || 'medium'];
+    if (attachmentUrl !== undefined) {
+      fields.push('attachment_url=?');
+      params.push(attachmentUrl);
+    }
+    params.push(req.params.id);
+
     await pool.query(
-      'UPDATE complaints SET title=?, description=?, category=?, priority=? WHERE id=?',
-      [title, description || null, category || 'other', priority || 'medium', req.params.id]
+      `UPDATE complaints SET ${fields.join(', ')} WHERE id=?`,
+      params
     );
     res.json({ success: true, message: 'Complaint updated successfully.' });
   } catch (err) {

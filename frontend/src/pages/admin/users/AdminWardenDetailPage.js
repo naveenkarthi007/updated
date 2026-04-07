@@ -96,8 +96,7 @@ export default function AdminWardenDetailPage() {
             </div>
             <h2 className="text-2xl font-black">{hostelStats.hostel.name}</h2>
             <p className="text-white/70 text-sm mt-1">
-              {hostelStats.hostel.block_code ? `Code ${hostelStats.hostel.block_code}` : ''}
-              {hostelStats.hostel.gender ? ` · ${hostelStats.hostel.gender === 'MALE' ? 'Boys Hostel' : hostelStats.hostel.gender === 'FEMALE' ? 'Girls Hostel' : hostelStats.hostel.gender}` : ''}
+              {hostelStats.hostel.gender ? (hostelStats.hostel.gender === 'MALE' ? 'Boys Hostel' : hostelStats.hostel.gender === 'FEMALE' ? 'Girls Hostel' : hostelStats.hostel.gender) : ''}
             </p>
           </div>
 
@@ -164,3 +163,4 @@ export default function AdminWardenDetailPage() {
     </div>
   );
 }
+

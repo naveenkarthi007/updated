@@ -155,8 +155,11 @@ export default function ComplaintsPage() {
                   <Badge variant={PRIORITY_BADGE[complaint.priority]}>{complaint.priority}</Badge>
                   <Badge variant="default" className="capitalize">{complaint.category}</Badge>
                 </div>
-                {complaint.description && <p className="text-xs text-brand-muted mb-1 line-clamp-2">{complaint.description}</p>}
-                <div className="flex items-center gap-3 text-xs text-gray-400 flex-wrap">
+                {complaint.description && <p className="text-xs text-brand-muted mb-1 line-clamp-2">{complaint.description}</p>}                  {complaint.image_url && (
+                    <a href={`${process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000'}${complaint.image_url}`} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-primary font-medium hover:underline mb-1 block">
+                      View Attachment
+                    </a>
+                  )}                <div className="flex items-center gap-3 text-xs text-gray-400 flex-wrap">
                   {complaint.student_name && <span>{complaint.student_name} ({complaint.register_no})</span>}
                   {complaint.room_number && <span>Room {complaint.room_number}</span>}
                   <span>{format(new Date(complaint.created_at), 'dd MMM yyyy')}</span>

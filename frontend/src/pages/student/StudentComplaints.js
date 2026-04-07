@@ -10,10 +10,14 @@ import {
   CircleAlert,
   ClipboardList,
   Eye,
+  FileText,
+  Paperclip,
   PencilLine,
   SearchCheck,
   Sparkles,
+  Upload,
   UserCog,
+  X,
 } from 'lucide-react';
 import { studentPortalAPI } from '../../services/api';
 import { Badge, Button, EmptyState, Input, Modal, Select, Spinner, Textarea } from '../../components/ui';
@@ -46,6 +50,9 @@ const PRIORITY_META = {
 
 const DEFAULT_FORM = { title: '', description: '', category: 'other', priority: 'medium' };
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+
 function toTitleCase(value) {
   return value.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
 }
@@ -59,6 +66,11 @@ export default function StudentComplaints() {
   const [editingComplaint, setEditingComplaint] = useState(null);
   const [filters, setFilters] = useState({ status: 'all', category: 'all', priority: 'all' });
   const [form, setForm] = useState(DEFAULT_FORM);
+  const [attachmentFile, setAttachmentFile] = useState(null);
+  const [attachmentPreview, setAttachmentPreview] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = React.useRef(null);
 
   const loadComplaints = () => {
     setLoading(true);
@@ -88,6 +100,9 @@ export default function StudentComplaints() {
   const resetFormState = () => {
     setForm(DEFAULT_FORM);
     setEditingComplaint(null);
+    setAttachmentFile(null);
+    setAttachmentPreview(null);
+    setUploadProgress(0);
     setModalOpen(false);
   };
 
@@ -113,6 +128,47 @@ export default function StudentComplaints() {
     setModalOpen(true);
   };
 
+  const validateFile = (file) => {
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+      toast.error('Invalid file type. Only JPG, PNG, and PDF files are allowed.');
+      return false;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error('File size exceeds 5MB limit.');
+      return false;
+    }
+    return true;
+  };
+
+  const handleFileSelect = (file) => {
+    if (!file) return;
+    if (!validateFile(file)) return;
+
+    setAttachmentFile(file);
+
+    // Generate preview for images
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => setAttachmentPreview(e.target.result);
+      reader.readAsDataURL(file);
+    } else {
+      setAttachmentPreview(null);
+    }
+  };
+
+  const handleFileDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    handleFileSelect(file);
+  };
+
+  const removeAttachment = () => {
+    setAttachmentFile(null);
+    setAttachmentPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handleSubmit = async () => {
     if (!form.title.trim()) {
       toast.error('Title is required.');
@@ -120,36 +176,33 @@ export default function StudentComplaints() {
     }
 
     setSaving(true);
+    setUploadProgress(0);
     try {
+      // Build FormData to support file upload
+      const formData = new FormData();
+      formData.append('title', form.title);
+      formData.append('description', form.description);
+      formData.append('category', form.category);
+      formData.append('priority', form.priority);
+      if (attachmentFile) {
+        formData.append('attachment', attachmentFile);
+      }
+
       if (editingComplaint) {
-        await studentPortalAPI.updateComplaint(editingComplaint.id, form);
+        await studentPortalAPI.updateComplaint(editingComplaint.id, formData);
         toast.success('Complaint updated successfully.');
       } else {
-        await studentPortalAPI.fileComplaint(form);
+        await studentPortalAPI.fileComplaint(formData);
         toast.success('Complaint filed successfully.');
       }
 
+      setUploadProgress(100);
       resetFormState();
       loadComplaints();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Unable to save complaint.');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleResolve = async complaint => {
-    if (complaint.status === 'resolved') return;
-
-    try {
-      await studentPortalAPI.resolveComplaint(complaint.id);
-      toast.success('Complaint marked as resolved.');
-      if (selectedComplaint?.id === complaint.id) {
-        setSelectedComplaint(current => current ? { ...current, status: 'resolved' } : current);
-      }
-      loadComplaints();
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Unable to resolve complaint.');
     }
   };
 
@@ -303,8 +356,6 @@ export default function StudentComplaints() {
               const statusMeta = STATUS_META[complaint.status] || STATUS_META.pending;
               const priorityMeta = PRIORITY_META[complaint.priority] || PRIORITY_META.medium;
               const canEdit = complaint.status === 'pending';
-              const canResolve = complaint.status !== 'resolved';
-
               return (
                 <motion.article
                   key={complaint.id}
@@ -413,16 +464,6 @@ export default function StudentComplaints() {
                         <PencilLine className="h-4 w-4" strokeWidth={1.9} />
                         Edit
                       </Button>
-
-                      <Button
-                        size="sm"
-                        disabled={!canResolve}
-                        onClick={() => handleResolve(complaint)}
-                        className="h-11 rounded-[18px] px-4 disabled:opacity-45"
-                      >
-                        <CheckCheck className="h-4 w-4" strokeWidth={1.9} />
-                        {canResolve ? 'Resolve' : 'Resolved'}
-                      </Button>
                     </div>
                   </div>
                 </motion.article>
@@ -487,6 +528,103 @@ export default function StudentComplaints() {
               placeholder="Add room details, issue severity, or any other context for the hostel team."
               className="min-h-[150px] rounded-[24px] bg-[#fbfbff] px-6 py-5 text-base"
             />
+          </div>
+
+          {/* ── File Upload Zone ── */}
+          <div className="md:col-span-2">
+            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Attachment (optional)</label>
+            <div
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+              onDrop={handleFileDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`relative cursor-pointer rounded-[24px] border-2 border-dashed transition-all duration-300 px-6 py-8 text-center ${
+                isDragging
+                  ? 'border-brand-primary bg-brand-primary/5 scale-[1.01]'
+                  : attachmentFile
+                    ? 'border-emerald-300 bg-emerald-50/50'
+                    : 'border-gray-200 bg-[#fbfbff] hover:border-brand-primary/40 hover:bg-[#f8f6ff]'
+              }`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".jpg,.jpeg,.png,.pdf"
+                onChange={(e) => handleFileSelect(e.target.files?.[0])}
+                className="hidden"
+              />
+
+              {attachmentFile ? (
+                <div className="flex flex-col items-center gap-3">
+                  {/* Image Preview */}
+                  {attachmentPreview ? (
+                    <div className="relative">
+                      <img
+                        src={attachmentPreview}
+                        alt="Preview"
+                        className="h-28 w-auto rounded-2xl object-cover shadow-md border border-white/80"
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); removeAttachment(); }}
+                        className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow-lg hover:bg-red-600 transition-colors"
+                      >
+                        <X className="h-3.5 w-3.5" strokeWidth={2.5} />
+                      </button>
+                    </div>
+                  ) : (
+                    /* PDF Badge */
+                    <div className="relative flex items-center gap-3 rounded-2xl border border-brand-border/60 bg-white px-5 py-3 shadow-sm">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-500">
+                        <FileText className="h-5 w-5" strokeWidth={1.8} />
+                      </div>
+                      <div className="text-left">
+                        <div className="text-sm font-semibold text-brand-text truncate max-w-[200px]">{attachmentFile.name}</div>
+                        <div className="text-[11px] text-brand-muted">{(attachmentFile.size / 1024).toFixed(1)} KB</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); removeAttachment(); }}
+                        className="ml-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow-lg hover:bg-red-600 transition-colors"
+                      >
+                        <X className="h-3.5 w-3.5" strokeWidth={2.5} />
+                      </button>
+                    </div>
+                  )}
+                  <p className="text-xs text-emerald-600 font-medium">File ready to upload — click to change</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2">
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl transition-colors ${
+                    isDragging ? 'bg-brand-primary/15 text-brand-primary' : 'bg-gray-100 text-gray-400'
+                  }`}>
+                    <Upload className="h-5 w-5" strokeWidth={1.8} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-brand-text">Drop a file here or <span className="text-brand-primary">browse</span></p>
+                    <p className="mt-1 text-[11px] text-brand-muted">JPG, PNG, or PDF — Max 5 MB</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Upload Progress */}
+            {saving && attachmentFile && (
+              <div className="mt-3">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-brand-muted mb-1">
+                  <span>Uploading...</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                  <motion.div
+                    className="h-full rounded-full bg-gradient-to-r from-brand-primary to-purple-500"
+                    initial={{ width: '0%' }}
+                    animate={{ width: saving ? '90%' : `${uploadProgress}%` }}
+                    transition={{ duration: 2, ease: 'easeOut' }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col-reverse gap-3 pt-1 md:col-span-2 sm:flex-row sm:justify-end">
@@ -555,6 +693,32 @@ export default function StudentComplaints() {
               <div className="rounded-[24px] border border-[#ece8ff] bg-[#f8f6ff] px-5 py-5">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">Admin Note</div>
                 <p className="mt-2 text-sm leading-7 text-brand-muted">{selectedComplaint.admin_note}</p>
+              </div>
+            ) : null}
+
+            {selectedComplaint.attachment_url ? (
+              <div className="rounded-[24px] border border-brand-border/60 bg-[#fafbff] px-5 py-5">
+                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-muted mb-3">
+                  <Paperclip className="h-3.5 w-3.5 text-brand-primary" strokeWidth={2} />
+                  Attachment
+                </div>
+                {/\.(jpg|jpeg|png)$/i.test(selectedComplaint.attachment_url) ? (
+                  <img
+                    src={selectedComplaint.attachment_url}
+                    alt="Complaint attachment"
+                    className="max-h-56 w-auto rounded-2xl object-cover border border-white/80 shadow-sm"
+                  />
+                ) : (
+                  <a
+                    href={selectedComplaint.attachment_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-brand-border/60 bg-white px-4 py-3 text-sm font-semibold text-brand-primary hover:bg-brand-primary/5 transition-colors"
+                  >
+                    <FileText className="h-4 w-4" strokeWidth={1.8} />
+                    View PDF Document
+                  </a>
+                )}
               </div>
             ) : null}
           </div>

@@ -91,6 +91,13 @@ export default function WardenComplaintsPortal() {
                       {complaint.student_name || 'Unknown Student'} • Room {complaint.room_number || 'N/A'} • {complaint.category || 'other'}
                     </div>
                     {complaint.description ? <p className="text-sm leading-7 text-brand-muted">{complaint.description}</p> : null}
+                    {complaint.image_url && (
+                      <div className="mt-2">
+                        <a href={`${process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000'}${complaint.image_url}`} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-primary font-medium hover:underline inline-flex items-center gap-1">
+                          View Attachment
+                        </a>
+                      </div>
+                    )}
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2 lg:w-[280px]">
                     <div className="rounded-[22px] border border-white bg-white px-4 py-3">

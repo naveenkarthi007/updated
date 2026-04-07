@@ -30,6 +30,15 @@ export default function RoomsPage() {
   const [view, setView] = useState('grid');
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
 
+  const resolveBlockForForm = useCallback((draft) => {
+    const linkedHostel = hostels.find((hostel) => String(hostel.id) === String(draft.hostel_id || ''));
+    if (linkedHostel?.block_code) return String(linkedHostel.block_code).toUpperCase();
+
+    const roomNumber = String(draft.room_number || '').trim().toUpperCase();
+    const match = roomNumber.match(/^([A-Z])\s*[-/]/);
+    return match ? match[1] : '';
+  }, [hostels]);
+
   useEffect(() => {
     hostelsAPI.getAll().then(res => setHostels(res.data.hostels || [])).catch(() => {});
   }, []);
@@ -50,7 +59,12 @@ export default function RoomsPage() {
 
   const openEdit = room => {
     setSelected(room);
-    setForm({ room_number: room.room_number, hostel_id: room.hostel_id || '', block: room.block, floor: room.floor, capacity: room.capacity, room_type: room.room_type, status: room.status });
+    let hId = room.hostel_id;
+    if (!hId && room.block) {
+      const linked = hostels.find(h => String(h.block_code || '').replace(/BLOCK_/i, '').trim().toUpperCase() === String(room.block || '').replace(/BLOCK_/i, '').trim().toUpperCase());
+      if (linked) hId = linked.id;
+    }
+    setForm({ room_number: room.room_number, hostel_id: hId || '', block: room.block, floor: room.floor, capacity: room.capacity, room_type: room.room_type, status: room.status });
     setModal('edit');
   };
 
@@ -62,13 +76,20 @@ export default function RoomsPage() {
   };
 
   const handleSave = async () => {
+    const block = resolveBlockForForm(form);
+    if (!block) {
+      toast.error('Select a hostel or use a room number like A-101 so the room can be assigned correctly.');
+      return;
+    }
+
     setSaving(true);
     try {
+      const payload = { ...form, block };
       if (modal === 'add') {
-        await roomsAPI.create(form);
+        await roomsAPI.create(payload);
         toast.success('Room created!');
       } else {
-        await roomsAPI.update(selected.id, form);
+        await roomsAPI.update(selected.id, payload);
         toast.success('Room updated!');
       }
       setModal(null);
@@ -224,9 +245,6 @@ export default function RoomsPage() {
           <Select label="Hostel" value={form.hostel_id} onChange={e => setForm(f => ({ ...f, hostel_id: e.target.value }))}>
             <option value="">-- No linked hostel --</option>
             {hostels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-          </Select>
-          <Select label="Hostel Block Code" value={form.block} onChange={e => setForm(f => ({ ...f, block: e.target.value }))}>
-            {['A', 'B', 'C', 'D'].map(b => <option key={b}>{b}</option>)}
           </Select>
           <Input label="Floor" type="number" min={1} max={10} value={form.floor} onChange={e => setForm(f => ({ ...f, floor: +e.target.value }))} />
           <Input label="Capacity" type="number" min={1} max={6} value={form.capacity} onChange={e => setForm(f => ({ ...f, capacity: +e.target.value }))} />

@@ -4,8 +4,10 @@ import { hostelApplicationsAPI } from '../../services/api';
 import { Table, Badge, Button, Modal, Textarea, PageHeader, EmptyState } from '../../components/ui';
 import { format } from 'date-fns';
 import { BuildingIcon } from 'lucide-react';
+import useHostelNameMap from '../../hooks/useHostelNameMap';
 
 export default function WardenApplicationReview() {
+  const { getHostelName } = useHostelNameMap();
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedApp, setSelectedApp] = useState(null);
@@ -63,7 +65,7 @@ export default function WardenApplicationReview() {
     )},
     { key: 'preferred_block', label: 'Preferences', render: (val, row) => (
       <div className="text-xs">
-        <div className="text-gray-900 font-medium">Block: {val || 'Any'}</div>
+        <div className="text-gray-900 font-medium">Hostel: {val ? getHostelName(val) : 'Any'}</div>
         <div className="text-gray-600 capitalize">Room: {row.preferred_room_type || 'Any'}</div>
       </div>
     )},
@@ -127,7 +129,7 @@ export default function WardenApplicationReview() {
                   <h4 className="text-sm font-bold text-gray-900 border-b pb-2 mb-3">Preferences</h4>
                   <ul className="space-y-2 text-sm">
                     <li className="flex justify-between"><span className="text-gray-500">Term:</span> <span className="font-medium">{selectedApp.academic_year} (Sem {selectedApp.semester})</span></li>
-                    <li className="flex justify-between"><span className="text-gray-500">Block:</span> <span className="font-medium">{selectedApp.preferred_block || 'No Preference'}</span></li>
+                    <li className="flex justify-between"><span className="text-gray-500">Hostel:</span> <span className="font-medium">{selectedApp.preferred_block ? getHostelName(selectedApp.preferred_block) : 'No Preference'}</span></li>
                     <li className="flex justify-between"><span className="text-gray-500">Room Type:</span> <span className="font-medium capitalize">{selectedApp.preferred_room_type || 'No Preference'}</span></li>
                   </ul>
                </div>

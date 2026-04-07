@@ -12,7 +12,7 @@ const getAll = async (req, res) => {
       `SELECT r.*, h.id AS hostel_id, h.name AS hostel_name
        FROM rooms r
        LEFT JOIN hostels h
-         ON UPPER(REPLACE(h.block_code, 'BLOCK_', '')) = UPPER(REPLACE(r.block, 'BLOCK_', ''))
+         ON UPPER(TRIM(REPLACE(h.block_code, 'BLOCK_', ''))) = UPPER(TRIM(REPLACE(r.block, 'BLOCK_', '')))
        WHERE ${where}
        ORDER BY r.block, r.floor, r.room_number`,
       params
@@ -27,7 +27,7 @@ const getOne = async (req, res) => {
       `SELECT r.*, h.id AS hostel_id, h.name AS hostel_name
        FROM rooms r
        LEFT JOIN hostels h
-         ON UPPER(REPLACE(h.block_code, 'BLOCK_', '')) = UPPER(REPLACE(r.block, 'BLOCK_', ''))
+         ON UPPER(TRIM(REPLACE(h.block_code, 'BLOCK_', ''))) = UPPER(TRIM(REPLACE(r.block, 'BLOCK_', '')))
        WHERE r.id=?`,
       [req.params.id]
     );
@@ -93,7 +93,7 @@ const exportCSV = async (req, res) => {
       `SELECT r.room_number, h.name AS hostel_name, r.block, r.floor, r.capacity, r.occupied, r.room_type, r.status
        FROM rooms r
        LEFT JOIN hostels h
-         ON UPPER(REPLACE(h.block_code, 'BLOCK_', '')) = UPPER(REPLACE(r.block, 'BLOCK_', ''))
+         ON UPPER(TRIM(REPLACE(h.block_code, 'BLOCK_', ''))) = UPPER(TRIM(REPLACE(r.block, 'BLOCK_', '')))
        ORDER BY r.block, r.floor, r.room_number`
     );
     const parser = new Parser({ fields: ['room_number','hostel_name','block','floor','capacity','occupied','room_type','status'] });

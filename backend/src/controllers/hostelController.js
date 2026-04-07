@@ -1,9 +1,24 @@
 const { pool } = require('../config/database');
+const VALID_BLOCK_CODES = new Set(['A', 'B', 'C', 'D']);
 
 const deriveAcademicYearFromDate = (date = new Date()) => {
   const d = new Date(date);
   const startYear = d.getMonth() >= 5 ? d.getFullYear() : d.getFullYear() - 1;
   return `${startYear}-${startYear + 1}`;
+};
+
+const normalizeBlockCode = (value) => {
+  if (value == null) return null;
+  const normalized = String(value).trim().toUpperCase();
+  return normalized || null;
+};
+
+const validateBlockCode = (blockCode) => {
+  if (blockCode == null) return null;
+  if (!VALID_BLOCK_CODES.has(blockCode)) {
+    return `Hostel code must be one of ${Array.from(VALID_BLOCK_CODES).join(', ')}.`;
+  }
+  return null;
 };
 
 // ── Get all hostels ───────────────────────────────────────────
@@ -39,12 +54,28 @@ const getAll = async (req, res) => {
 const create = async (req, res) => {
   try {
     const { name, block_code, gender = 'COED', total_rooms = 0, warden_id, capacity = 0 } = req.body;
+    const normalizedBlockCode = normalizeBlockCode(block_code);
     if (!name) return res.status(400).json({ success: false, message: 'Hostel name is required.' });
+    const blockCodeError = validateBlockCode(normalizedBlockCode);
+    if (blockCodeError) return res.status(400).json({ success: false, message: blockCodeError });
+
+    if (normalizedBlockCode) {
+      const [[existing]] = await pool.query(
+        'SELECT id, name FROM hostels WHERE block_code = ? LIMIT 1',
+        [normalizedBlockCode]
+      );
+      if (existing) {
+        return res.status(400).json({
+          success: false,
+          message: `Hostel code ${normalizedBlockCode} is already assigned to ${existing.name}.`,
+        });
+      }
+    }
 
     const [result] = await pool.query(
       `INSERT INTO hostels (name, block_code, gender, total_rooms, warden_id, capacity)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [name, block_code || null, gender, total_rooms, warden_id || null, capacity || 0]
+      [name, normalizedBlockCode, gender, total_rooms, warden_id || null, capacity || 0]
     );
     const [[hostel]] = await pool.query('SELECT * FROM hostels WHERE id=?', [result.insertId]);
     res.json({ success: true, hostel });
@@ -64,13 +95,31 @@ const update = async (req, res) => {
     if (!hostel) return res.status(404).json({ success: false, message: 'Hostel not found.' });
 
     const { name, block_code, gender, total_rooms, warden_id, capacity } = req.body;
+    const normalizedBlockCode =
+      block_code !== undefined ? normalizeBlockCode(block_code) : hostel.block_code;
+    const blockCodeError = validateBlockCode(normalizedBlockCode);
+    if (blockCodeError) return res.status(400).json({ success: false, message: blockCodeError });
+
+    if (normalizedBlockCode) {
+      const [[existing]] = await pool.query(
+        'SELECT id, name FROM hostels WHERE block_code = ? AND id <> ? LIMIT 1',
+        [normalizedBlockCode, req.params.id]
+      );
+      if (existing) {
+        return res.status(400).json({
+          success: false,
+          message: `Hostel code ${normalizedBlockCode} is already assigned to ${existing.name}.`,
+        });
+      }
+    }
+
     await pool.query(
       `UPDATE hostels SET
          name=?, block_code=?, gender=?, total_rooms=?, warden_id=?, capacity=?, updated_at=NOW()
        WHERE id=?`,
       [
         name ?? hostel.name,
-        block_code !== undefined ? block_code : hostel.block_code,
+        normalizedBlockCode,
         gender ?? hostel.gender,
         total_rooms ?? hostel.total_rooms,
         warden_id !== undefined ? (warden_id || null) : hostel.warden_id,

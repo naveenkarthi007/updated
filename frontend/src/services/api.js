@@ -214,8 +214,12 @@ export const studentPortalAPI = {
   getProfile:    ()  => api.get('/student/profile'),
   getDashboard:  ()  => api.get('/student/dashboard'),
   getComplaints: (p) => api.get('/student/complaints', { params: p }),
-  fileComplaint: (d) => api.post('/student/complaints', d),
-  updateComplaint:  (id, d) => api.put(`/student/complaints/${id}`, d),
+  fileComplaint: (d) => api.post('/student/complaints', d, {
+    headers: d instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {},
+  }),
+  updateComplaint:  (id, d) => api.put(`/student/complaints/${id}`, d, {
+    headers: d instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {},
+  }),
   resolveComplaint: (id)    => api.patch(`/student/complaints/${id}/resolve`),
 };
 
@@ -271,11 +275,19 @@ export const messagesAPI = {
 
 // ── Hostels ───────────────────────────────────────────────────
 export const hostelsAPI = {
-  // read-mostly; cache for 10 minutes (persist)
-  getAll:          ()      => requestCached('get', '/hostels', {}, { ttlMs: 10 * 60 * 1000, persist: true }),
-  create:          (d)     => api.post('/hostels', d),
-  update:          (id, d) => api.put(`/hostels/${id}`, d),
-  delete:          (id)    => api.delete(`/hostels/${id}`),
+  getAll:          ()      => api.get('/hostels'),
+  create:          async (d) => {
+    const res = await api.post('/hostels', d);
+    return res;
+  },
+  update:          async (id, d) => {
+    const res = await api.put(`/hostels/${id}`, d);
+    return res;
+  },
+  delete:          async (id) => {
+    const res = await api.delete(`/hostels/${id}`);
+    return res;
+  },
   getWardenDetail: (id)    => api.get(`/hostels/warden/${id}`),
 };
 

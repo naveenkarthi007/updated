@@ -6,11 +6,9 @@ import { Spinner, Table, Button, SectionCard } from '../../../components/ui';
 
 const GENDER_LABELS = { MALE: 'Boys Hostel', FEMALE: 'Girls Hostel' };
 const GENDER_COLORS = {
-  MALE:   'bg-blue-50 text-blue-700 border border-blue-200',
+  MALE: 'bg-blue-50 text-blue-700 border border-blue-200',
   FEMALE: 'bg-pink-50 text-pink-700 border border-pink-200',
 };
-
-const emptyForm = { name: '', block_code: '', gender: 'MALE', total_rooms: '', capacity: '', warden_id: '' };
 
 function StatCard({ label, value, color }) {
   return (
@@ -22,7 +20,13 @@ function StatCard({ label, value, color }) {
 }
 
 function HostelModal({ hostel, wardens, onSave, onClose }) {
-  const [form, setForm] = useState(hostel || emptyForm);
+  const [form, setForm] = useState({
+    name: hostel?.name || '',
+    gender: hostel?.gender || 'MALE',
+    total_rooms: hostel?.total_rooms ?? '',
+    capacity: hostel?.capacity ?? '',
+    warden_id: hostel?.warden_id || '',
+  });
   const [saving, setSaving] = useState(false);
 
   const handle = async (e) => {
@@ -30,11 +34,18 @@ function HostelModal({ hostel, wardens, onSave, onClose }) {
     if (!form.name.trim()) return toast.error('Hostel name is required');
     setSaving(true);
     try {
-      await onSave({ ...form, total_rooms: Number(form.total_rooms) || 0, capacity: Number(form.capacity) || 0, warden_id: form.warden_id || null });
+      await onSave({
+        ...form,
+        total_rooms: Number(form.total_rooms) || 0,
+        capacity: Number(form.capacity) || 0,
+        warden_id: form.warden_id || null,
+      });
       onClose();
     } catch (err) {
       console.error('Save failed:', err);
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -48,37 +59,31 @@ function HostelModal({ hostel, wardens, onSave, onClose }) {
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Hostel Name *</label>
             <input
-              required value={form.name}
+              required
+              value={form.name}
               onChange={e => setForm({ ...form, name: e.target.value })}
               placeholder="e.g. Sri Ramanujan Block"
               className="w-full rounded-xl border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Hostel Code</label>
-              <input
-                value={form.block_code} onChange={e => setForm({ ...form, block_code: e.target.value })}
-                placeholder="A, B, C…"
-                className="w-full rounded-xl border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Gender</label>
-              <select
-                value={form.gender} onChange={e => setForm({ ...form, gender: e.target.value })}
-                className="w-full rounded-xl border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
-              >
-                <option value="MALE">Boys Hostel</option>
-                <option value="FEMALE">Girls Hostel</option>
-              </select>
-            </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Gender</label>
+            <select
+              value={form.gender}
+              onChange={e => setForm({ ...form, gender: e.target.value })}
+              className="w-full rounded-xl border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+            >
+              <option value="MALE">Boys Hostel</option>
+              <option value="FEMALE">Girls Hostel</option>
+            </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Total Rooms</label>
               <input
-                type="number" min="0" value={form.total_rooms}
+                type="number"
+                min="0"
+                value={form.total_rooms}
                 onChange={e => setForm({ ...form, total_rooms: e.target.value })}
                 className="w-full rounded-xl border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
               />
@@ -86,25 +91,29 @@ function HostelModal({ hostel, wardens, onSave, onClose }) {
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Capacity</label>
               <input
-                type="number" min="0" value={form.capacity}
+                type="number"
+                min="0"
+                value={form.capacity}
                 onChange={e => setForm({ ...form, capacity: e.target.value })}
                 className="w-full rounded-xl border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Assign Warden</label>
-              <select
-                value={form.warden_id || ''} onChange={e => setForm({ ...form, warden_id: e.target.value })}
-                className="w-full rounded-xl border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
-              >
-                <option value="">— None —</option>
-                {wardens.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-              </select>
-            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Assign Warden</label>
+            <select
+              value={form.warden_id || ''}
+              onChange={e => setForm({ ...form, warden_id: e.target.value })}
+              className="w-full rounded-xl border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+            >
+              <option value="">None</option>
+              {wardens.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+            </select>
           </div>
           <div className="flex gap-2 pt-2">
             <button
-              type="submit" disabled={saving}
+              type="submit"
+              disabled={saving}
               className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:bg-brand-primary/90 disabled:opacity-60 transition-colors"
             >
               {saving ? <Spinner size="sm" /> : <Check className="h-4 w-4" />}
@@ -121,11 +130,11 @@ function HostelModal({ hostel, wardens, onSave, onClose }) {
 }
 
 export default function AdminHostelsPage() {
-  const [hostels,     setHostels]     = useState([]);
-  const [wardens,     setWardens]     = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [showModal,   setShowModal]   = useState(false);
-  const [editHostel,  setEditHostel]  = useState(null);
+  const [hostels, setHostels] = useState([]);
+  const [wardens, setWardens] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editHostel, setEditHostel] = useState(null);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -135,8 +144,11 @@ export default function AdminHostelsPage() {
       ]);
       setHostels(hRes.data.hostels || []);
       setWardens(wRes.data.data || []);
-    } catch { toast.error('Failed to load hostels'); }
-    finally  { setLoading(false); }
+    } catch {
+      toast.error('Failed to load hostels');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
@@ -169,10 +181,9 @@ export default function AdminHostelsPage() {
 
   const columns = [
     { key: 'name', label: 'Hostel Name', render: (val) => <span className="font-bold text-gray-900">{val}</span> },
-    { key: 'block_code', label: 'Hostel Code', render: val => val || '-' },
-    { key: 'gender', label: 'Gender', render: val => <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${GENDER_COLORS[val] || 'bg-gray-100 text-gray-700 border border-gray-200'}`}>{GENDER_LABELS[val] || val}</span> },
+    { key: 'gender', label: 'Gender', render: (val) => <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${GENDER_COLORS[val] || 'bg-gray-100 text-gray-700 border border-gray-200'}`}>{GENDER_LABELS[val] || val}</span> },
     { key: 'warden_name', label: 'Warden', render: val => val || 'Not assigned' },
-    { key: 'total_rooms', label: 'Total Rooms', render: (val, row) => <span>{val} (Actual: {row.actual_room_count || 0})</span> },
+    { key: 'total_rooms', label: 'Configured / Live Rooms', render: (val, row) => <span>{val || 0} / {row.actual_room_count || 0}</span> },
     { key: 'capacity', label: 'Capacity', render: val => val || 0 },
     { key: 'actions', label: 'Actions', render: (_, row) => (
       <div className="flex items-center gap-1">
@@ -182,9 +193,9 @@ export default function AdminHostelsPage() {
     )}
   ];
 
-  const maleHostels   = hostels.filter(h => h.gender === 'MALE');
+  const maleHostels = hostels.filter(h => h.gender === 'MALE');
   const femaleHostels = hostels.filter(h => h.gender === 'FEMALE');
-  const totalRooms    = hostels.reduce((s, h) => s + (h.actual_room_count || 0), 0);
+  const totalRooms = hostels.reduce((sum, hostel) => sum + (Number(hostel.total_rooms) || 0), 0);
 
   if (loading) return (
     <div className="flex items-center justify-center h-60">
@@ -194,7 +205,6 @@ export default function AdminHostelsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Hostels Management</h1>
@@ -208,20 +218,17 @@ export default function AdminHostelsPage() {
         </button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Total Hostels"  value={hostels.length}        color="text-gray-900" />
-        <StatCard label="Boys Hostels"   value={maleHostels.length}    color="text-blue-600" />
-        <StatCard label="Girls Hostels"  value={femaleHostels.length}  color="text-pink-600" />
-        <StatCard label="Total Rooms"    value={totalRooms}            color="text-green-600"/>
+        <StatCard label="Total Hostels" value={hostels.length} color="text-gray-900" />
+        <StatCard label="Boys Hostels" value={maleHostels.length} color="text-blue-600" />
+        <StatCard label="Girls Hostels" value={femaleHostels.length} color="text-pink-600" />
+        <StatCard label="Total Rooms" value={totalRooms} color="text-green-600" />
       </div>
 
-      {/* Hostel Table */}
       <SectionCard title="Hostels List" description="Complete registry of all campus accommodations.">
         <Table columns={columns} data={hostels} loading={loading} paginate pageSize={10} />
       </SectionCard>
 
-      {/* Modal */}
       {showModal && (
         <HostelModal
           hostel={editHostel}

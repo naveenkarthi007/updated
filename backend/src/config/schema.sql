@@ -150,6 +150,7 @@ CREATE TABLE IF NOT EXISTS complaints (
   priority     ENUM('low','medium','high') DEFAULT 'medium',
   assigned_to  INT DEFAULT NULL,
   admin_note   TEXT,
+  attachment_url VARCHAR(500) DEFAULT NULL,
   created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE SET NULL,

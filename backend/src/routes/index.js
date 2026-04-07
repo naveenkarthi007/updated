@@ -26,6 +26,7 @@ const staffDirCtrl = require('../controllers/staffDirectoryController');
 const userCtrl = require('../controllers/userController');
 const messageCtrl = require('../controllers/messageController');
 const hostelCtrl = require('../controllers/hostelController');
+const complaintUpload = require('../middleware/complaintUpload');
 const multer = require('multer');
 
 const upload = multer({
@@ -140,8 +141,8 @@ router.get('/staff-directory', authenticate, staffDirCtrl.getAll);
 router.get('/student/profile', authenticate, studentPortal.getMyProfile);
 router.get('/student/dashboard', authenticate, studentPortal.getMyDashboard);
 router.get('/student/complaints', authenticate, studentPortal.getMyComplaints);
-router.post('/student/complaints', authenticate, studentPortal.fileComplaint);
-router.put('/student/complaints/:id', authenticate, studentPortal.updateMyComplaint);
+router.post('/student/complaints', authenticate, complaintUpload.single('attachment'), studentPortal.fileComplaint);
+router.put('/student/complaints/:id', authenticate, complaintUpload.single('attachment'), studentPortal.updateMyComplaint);
 router.patch('/student/complaints/:id/resolve', authenticate, studentPortal.resolveMyComplaint);
 
 router.get('/student/hostel-applications', authenticate, hostelAppCtrl.getMyApplications);

@@ -115,9 +115,9 @@ export default function StudentsPage() {
     department: form.department,
     year: Number(form.year),
     wing: form.wing || null,
-    phone: form.phone.trim(),
-    email: form.email.trim(),
-    address: form.address.trim(),
+    phone: form.phone.trim() || null,
+    email: form.email.trim() || null,
+    address: form.address.trim() || null,
     joined_date: form.joined_date || null,
   });
 
@@ -168,6 +168,11 @@ export default function StudentsPage() {
 
     if (!payload.name || !payload.register_no || !payload.department || !payload.year) {
       toast.error('Name, register number, department, and year are required.');
+      return;
+    }
+
+    if (modal === 'add' && !payload.email) {
+      toast.error('Email is required when creating a student.');
       return;
     }
 
@@ -320,6 +325,7 @@ export default function StudentsPage() {
         value={form.email}
         onChange={(e) => handleInput('email', e.target.value)}
         placeholder="student@email.com"
+        required={modal === 'add'}
       />
 
       <Input
@@ -495,7 +501,7 @@ export default function StudentsPage() {
               >
                 <option value="">All hostels</option>
                 {hostels.map((h) => (
-                  <option key={h.id} value={h.block_code || h.name || ''}>
+                  <option key={h.id} value={h.name || ''}>
                     {h.name}
                   </option>
                 ))}
@@ -1041,3 +1047,4 @@ export default function StudentsPage() {
     </div>
   );
 }
+
