@@ -1,41 +1,60 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authAPI } from '../services/api';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      authAPI.me()
-        .then(r => setUser(r.data.user))
-        .catch(() => localStorage.removeItem('token'))
-        .finally(() => setLoading(false));
-    } else {
+  // Use useCallback to memoize fetching user data
+  const fetchUser = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const { data } = await authAPI.me();
+      setUser(data.user);
+    } catch (err) {
+      setUser(null);
+      setError(err?.response?.data?.message || err.message);
+    } finally {
       setLoading(false);
     }
   }, []);
 
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
+
   const login = async (email, password) => {
-    const r = await authAPI.login({ email, password });
-    localStorage.setItem('token', r.data.token);
-    setUser(r.data.user);
-    return r.data;
+    try {
+      const { data } = await authAPI.login({ email, password });
+      setUser(data.user);
+      return data;
+    } catch (err) {
+      throw err;
+    }
   };
 
   const googleLogin = async (credential) => {
-    const r = await authAPI.googleLogin(credential);
-    localStorage.setItem('token', r.data.token);
-    setUser(r.data.user);
-    return r.data;
+    try {
+      const { data } = await authAPI.googleLogin(credential);
+      setUser(data.user);
+      return data;
+    } catch (err) {
+      throw err;
+    }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
+  const logout = async () => {
+    try {
+      await authAPI.logout();
+    } catch {
+      // Do not block client-side logout if backend call fails.
+    } finally {
+      setUser(null);
+    }
   };
 
   const isAdmin      = user?.role === 'admin';
@@ -44,7 +63,7 @@ export function AuthProvider({ children }) {
   const isWarden     = user?.role === 'warden';
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, googleLogin, logout, isAdmin, isStudent, isCaretaker, isWarden }}>
+    <AuthContext.Provider value={{ user, loading, error, login, googleLogin, logout, isAdmin, isStudent, isCaretaker, isWarden }}>
       {children}
     </AuthContext.Provider>
   );

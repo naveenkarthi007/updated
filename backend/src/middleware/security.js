@@ -15,12 +15,17 @@ const securityHeaders = helmet({
 //    Uses default keyGenerator which respects trust proxy for X-Forwarded-For.
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,       // 15 minutes
-  max: 200,                        // limit each IP to 200 requests per window
+  max: process.env.NODE_ENV === 'production' ? 200 : 2000, // higher in local dev
   standardHeaders: true,           // Return rate limit info in `RateLimit-*` headers
   legacyHeaders: false,            // Disable `X-RateLimit-*` headers
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again after 15 minutes.',
+  },
+  skip: (req) => {
+    // In development, don't throttle session-check polling and dev refreshes.
+    if (process.env.NODE_ENV !== 'production' && req.path === '/api/auth/me') return true;
+    return false;
   },
 });
 

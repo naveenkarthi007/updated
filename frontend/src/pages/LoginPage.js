@@ -78,6 +78,7 @@ export default function LoginPage() {
                 placeholder="Enter your username"
                 value={form.email}
                 onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                autoComplete="username"
                 className="h-10 w-full rounded border border-[#e2e8f0] bg-[#f0f4f8] px-3 text-[14px] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#7D53F6]"
                 required
               />
@@ -91,6 +92,7 @@ export default function LoginPage() {
                 placeholder="Enter your password"
                 value={form.password}
                 onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                autoComplete="current-password"
                 className="h-10 w-full rounded border border-[#e2e8f0] bg-[#f0f4f8] px-3 text-[14px] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#7D53F6]"
                 required
               />

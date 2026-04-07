@@ -43,6 +43,7 @@ const upload = multer({
 // ── Auth ──────────────────────────────────────────────────
 router.post('/auth/login', authCtrl.login);
 router.post('/auth/google', authCtrl.googleLogin);
+router.post('/auth/logout', authCtrl.logout);
 router.get('/auth/me', authenticate, authCtrl.me);
 router.put('/auth/change-password', authenticate, authCtrl.changePassword);
 

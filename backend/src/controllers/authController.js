@@ -4,6 +4,7 @@ const { OAuth2Client } = require('google-auth-library');
 const { pool } = require('../config/database');
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const cookieName = process.env.AUTH_COOKIE_NAME || 'auth_token';
 
 const signToken = (user) =>
   jwt.sign(
@@ -11,6 +12,13 @@ const signToken = (user) =>
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
+
+const cookieOptions = () => ({
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: process.env.NODE_ENV === 'production',
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+});
 
 const login = async (req, res) => {
   const { email, password } = req.body;
@@ -45,10 +53,10 @@ const login = async (req, res) => {
       if (studentRows.length) userData.student_id = studentRows[0].id;
     }
 
+    res.cookie(cookieName, token, cookieOptions());
     res.json({
       success: true,
       message: 'Login successful.',
-      token,
       user: userData,
     });
   } catch (err) {
@@ -116,16 +124,25 @@ const googleLogin = async (req, res) => {
       }
     }
 
+    res.cookie(cookieName, token, cookieOptions());
     res.json({
       success: true,
       message: 'Google login successful.',
-      token,
       user: userData,
     });
   } catch (err) {
     console.error('Google auth error:', err);
     res.status(401).json({ success: false, message: 'Google authentication failed.' });
   }
+};
+
+const logout = async (req, res) => {
+  res.clearCookie(cookieName, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  });
+  res.json({ success: true, message: 'Logged out.' });
 };
 
 const me = async (req, res) => {
@@ -180,4 +197,4 @@ const changePassword = async (req, res) => {
   }
 };
 
-module.exports = { login, googleLogin, me, changePassword };
+module.exports = { login, googleLogin, me, changePassword, logout };

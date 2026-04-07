@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const http = require('http');
 const { testConnection } = require('./config/database');
 const routes = require('./routes');
 const {
@@ -39,6 +41,7 @@ app.use((req, res, next) => {
 
 // ── CORS ──
 app.use(cors({ origin: true, credentials: true }));
+app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
@@ -69,7 +72,24 @@ app.use((err, req, res, next) => {
 });
 
 testConnection().then(() => {
-  app.listen(PORT, () => {
+  // #region agent log
+  fetch('http://127.0.0.1:7759/ingest/e49573f9-3b52-4080-b103-30140bdd6ee2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8835aa'},body:JSON.stringify({sessionId:'8835aa',runId:'initial',hypothesisId:'H1',location:'backend/src/index.js:testConnection.then',message:'About to bind backend port',data:{port:Number(PORT),nodeEnv:process.env.NODE_ENV||'undefined'},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+  const server = http.createServer(app);
+  server.on('error', (error) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7759/ingest/e49573f9-3b52-4080-b103-30140bdd6ee2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8835aa'},body:JSON.stringify({sessionId:'8835aa',runId:'initial',hypothesisId:'H1',location:'backend/src/index.js:server.error',message:'Backend listen failure',data:{code:error?.code||'unknown',syscall:error?.syscall||'unknown',port:Number(PORT)},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    if (error?.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use. Stop the other backend instance or change PORT in backend/.env.`);
+      return;
+    }
+    console.error('Server error:', error);
+  });
+  server.listen(PORT, () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7759/ingest/e49573f9-3b52-4080-b103-30140bdd6ee2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8835aa'},body:JSON.stringify({sessionId:'8835aa',runId:'initial',hypothesisId:'H1',location:'backend/src/index.js:app.listen.success',message:'Backend server is listening',data:{port:Number(PORT)},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     console.log(`🚀 Hostel Management Server running on http://localhost:${PORT}`);
   });
 });

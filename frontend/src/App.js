@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import ErrorBoundary from './components/ErrorBoundary';
 // Forced HMR Recompilation trigger
 
 import Sidebar from './components/layout/Sidebar';
@@ -220,23 +221,27 @@ function AppRoutes() {
   );
 }
 
-const GOOGLE_CLIENT_ID = '181603728534-78tjb4gbu8p6olk8mtpqj2h2guls23vv.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID =
+  process.env.REACT_APP_GOOGLE_CLIENT_ID ||
+  '181603728534-78tjb4gbu8p6olk8mtpqj2h2guls23vv.apps.googleusercontent.com';
 
 export default function App() {
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <AuthProvider>
-        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <AppRoutes />
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              style: { borderRadius: '12px', fontSize: '13px', fontFamily: 'Manrope, Segoe UI, sans-serif' },
-              success: { iconTheme: { primary: '#7D53F6', secondary: '#fff' } },
-            }}
-          />
-        </BrowserRouter>
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <AppRoutes />
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                style: { borderRadius: '12px', fontSize: '13px', fontFamily: 'Manrope, Segoe UI, sans-serif' },
+                success: { iconTheme: { primary: '#7D53F6', secondary: '#fff' } },
+              }}
+            />
+          </BrowserRouter>
+        </AuthProvider>
+      </ErrorBoundary>
     </GoogleOAuthProvider>
   );
 }

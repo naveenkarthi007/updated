@@ -2,7 +2,11 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 
 /* eslint-disable no-undef */
-const api = axios.create({ baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api', timeout: 10000 });
+const api = axios.create({
+  baseURL: process.env.REACT_APP_API_URL || '/api',
+  timeout: 10000,
+  withCredentials: true,
+});
 
 // Lightweight in-memory request cache + in-flight dedupe.
 // Goal: avoid request storms from rapid UI changes / repeated mounts.
@@ -18,7 +22,7 @@ const stableKey = (method, url, config) => {
 
 const readStorage = (key) => {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = sessionStorage.getItem(key);
     if (!raw) return null;
     return JSON.parse(raw);
   } catch {
@@ -28,7 +32,7 @@ const readStorage = (key) => {
 
 const writeStorage = (key, value) => {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    sessionStorage.setItem(key, JSON.stringify(value));
   } catch {
     // ignore quota / private mode
   }
@@ -38,7 +42,7 @@ async function requestCached(method, url, config = {}, opts = {}) {
   const {
     cacheKey = stableKey(method, url, config),
     ttlMs = 0,
-    persist = false, // localStorage
+    persist = false, // sessionStorage
     storageKey = `api-cache:${cacheKey}`,
     dedupe = true,
   } = opts;
@@ -73,20 +77,32 @@ async function requestCached(method, url, config = {}, opts = {}) {
   return p;
 }
 
-api.interceptors.request.use(config => {
-  const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
-
 api.interceptors.response.use(
   r => r,
   err => {
     if (err.response) {
       const status = err.response.status;
+      // #region agent log
+      fetch('http://127.0.0.1:7759/ingest/e49573f9-3b52-4080-b103-30140bdd6ee2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8835aa'},body:JSON.stringify({sessionId:'8835aa',runId:'initial',hypothesisId:'H3',location:'frontend/src/services/api.js:interceptor.error',message:'API response error intercepted',data:{status,url:String(err.config?.url||''),path:window.location.pathname},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       if (status === 401) {
-        localStorage.removeItem('token');
-        window.location.href = '/login';
+        const requestUrl = String(err.config?.url || '');
+        const isAuthBootstrapRequest = requestUrl.includes('/auth/me');
+        const isAuthAction = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/google');
+
+        try {
+          sessionStorage.clear();
+        } catch {
+          // noop
+        }
+
+        // Let auth bootstrap/login failures be handled by calling code without hard redirect loops.
+        if (!isAuthBootstrapRequest && !isAuthAction && window.location.pathname !== '/login') {
+          // #region agent log
+          fetch('http://127.0.0.1:7759/ingest/e49573f9-3b52-4080-b103-30140bdd6ee2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8835aa'},body:JSON.stringify({sessionId:'8835aa',runId:'initial',hypothesisId:'H4',location:'frontend/src/services/api.js:interceptor.redirect',message:'Redirecting to login after unauthorized API call',data:{url:requestUrl,fromPath:window.location.pathname},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
+          window.location.href = '/login';
+        }
       } else if (status >= 400) {
         const message = err.response.data?.message || 'An error occurred';
         toast.error(`Error ${status}: ${message}`);
@@ -104,6 +120,7 @@ export const authAPI = {
   login:          (d) => api.post('/auth/login', d),
   googleLogin:    (credential) => api.post('/auth/google', { credential }),
   me:             ()  => api.get('/auth/me'),
+  logout:         ()  => api.post('/auth/logout'),
   changePassword: (d) => api.put('/auth/change-password', d),
 };
 
