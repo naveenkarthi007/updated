@@ -39,7 +39,7 @@ const getOne = async (req, res) => {
 
 const create = async (req, res) => {
   const { room_number, block, floor, wing, capacity, room_type } = req.body;
-  if (!room_number || !block || !floor || !capacity)
+  if (!room_number || !block || typeof floor === 'undefined' || !capacity)
     return res.status(400).json({ success: false, message: 'room_number, block, floor, capacity required.' });
   try {
     const status = 'available'; // New room is always available

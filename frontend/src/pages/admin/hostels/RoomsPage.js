@@ -34,9 +34,8 @@ export default function RoomsPage() {
     const linkedHostel = hostels.find((hostel) => String(hostel.id) === String(draft.hostel_id || ''));
     if (linkedHostel?.block_code) return String(linkedHostel.block_code).toUpperCase();
 
-    const roomNumber = String(draft.room_number || '').trim().toUpperCase();
-    const match = roomNumber.match(/^([A-Z])\s*[-/]/);
-    return match ? match[1] : '';
+    // Fallback to explicitly selected block
+    return draft.block || 'A';
   }, [hostels]);
 
   useEffect(() => {
@@ -246,6 +245,11 @@ export default function RoomsPage() {
             <option value="">-- No linked hostel --</option>
             {hostels.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
           </Select>
+          {!form.hostel_id && (
+            <Select label="Block" value={form.block} onChange={e => setForm(f => ({ ...f, block: e.target.value }))}>
+              {['A', 'B', 'C', 'D'].map(b => <option key={b} value={b}>{b}</option>)}
+            </Select>
+          )}
           <Input label="Floor" type="number" min={1} max={10} value={form.floor} onChange={e => setForm(f => ({ ...f, floor: +e.target.value }))} />
           <Input label="Capacity" type="number" min={1} max={6} value={form.capacity} onChange={e => setForm(f => ({ ...f, capacity: +e.target.value }))} />
           <Select label="Room Type" value={form.room_type} onChange={e => setForm(f => ({ ...f, room_type: e.target.value }))}>
