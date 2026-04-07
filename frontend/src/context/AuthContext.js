@@ -11,9 +11,19 @@ export function AuthProvider({ children }) {
   // Use useCallback to memoize fetching user data
   const fetchUser = useCallback(async () => {
     try {
+      const hasToken = localStorage.getItem('token') || document.cookie.includes('auth_token');
+      if (!hasToken) {
+        setLoading(false);
+        setUser(null);
+        return; // Skip API call if definitely not logged in, avoiding 401 error
+      }
+
       setLoading(true);
       setError(null);
       const { data } = await authAPI.me();
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
       setUser(data.user);
     } catch (err) {
       setUser(null);
@@ -30,6 +40,9 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     try {
       const { data } = await authAPI.login({ email, password });
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
       setUser(data.user);
       return data;
     } catch (err) {
@@ -40,6 +53,9 @@ export function AuthProvider({ children }) {
   const googleLogin = async (credential) => {
     try {
       const { data } = await authAPI.googleLogin(credential);
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
       setUser(data.user);
       return data;
     } catch (err) {
@@ -53,6 +69,7 @@ export function AuthProvider({ children }) {
     } catch {
       // Do not block client-side logout if backend call fails.
     } finally {
+      localStorage.removeItem('token');
       setUser(null);
     }
   };

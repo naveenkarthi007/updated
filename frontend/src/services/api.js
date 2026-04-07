@@ -77,14 +77,20 @@ async function requestCached(method, url, config = {}, opts = {}) {
   return p;
 }
 
+// Interceptor to inject Authorization Bearer token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+}, (error) => Promise.reject(error));
+
 api.interceptors.response.use(
   r => r,
   err => {
     if (err.response) {
       const status = err.response.status;
-      // #region agent log
-      fetch('http://127.0.0.1:7759/ingest/e49573f9-3b52-4080-b103-30140bdd6ee2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8835aa'},body:JSON.stringify({sessionId:'8835aa',runId:'initial',hypothesisId:'H3',location:'frontend/src/services/api.js:interceptor.error',message:'API response error intercepted',data:{status,url:String(err.config?.url||''),path:window.location.pathname},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       if (status === 401) {
         const requestUrl = String(err.config?.url || '');
         const isAuthBootstrapRequest = requestUrl.includes('/auth/me');
@@ -92,15 +98,13 @@ api.interceptors.response.use(
 
         try {
           sessionStorage.clear();
+          localStorage.removeItem('token'); // Clear stored token on 401
         } catch {
           // noop
         }
 
         // Let auth bootstrap/login failures be handled by calling code without hard redirect loops.
         if (!isAuthBootstrapRequest && !isAuthAction && window.location.pathname !== '/login') {
-          // #region agent log
-          fetch('http://127.0.0.1:7759/ingest/e49573f9-3b52-4080-b103-30140bdd6ee2',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'8835aa'},body:JSON.stringify({sessionId:'8835aa',runId:'initial',hypothesisId:'H4',location:'frontend/src/services/api.js:interceptor.redirect',message:'Redirecting to login after unauthorized API call',data:{url:requestUrl,fromPath:window.location.pathname},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
           window.location.href = '/login';
         }
       } else if (status >= 400) {

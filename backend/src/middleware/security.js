@@ -6,7 +6,10 @@ const helmet = require('helmet');
 const securityHeaders = helmet({
   contentSecurityPolicy: false,   // disabled so the React frontend can load
   crossOriginEmbedderPolicy: false,
-  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+  crossOriginOpenerPolicy: false, // Disabled to prevent postMessage blocks in local development/Google Auth
+  referrerPolicy: {
+    policy: 'strict-origin-when-cross-origin', // Required for Google Sign-In to verify origin
+  },
 });
 
 // ── 2. Global Rate Limiter ────────────────────────────────────

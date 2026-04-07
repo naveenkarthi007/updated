@@ -58,6 +58,7 @@ const login = async (req, res) => {
       success: true,
       message: 'Login successful.',
       user: userData,
+      token, // Return token for Bearer auth
     });
   } catch (err) {
     console.error(err);
@@ -129,6 +130,7 @@ const googleLogin = async (req, res) => {
       success: true,
       message: 'Google login successful.',
       user: userData,
+      token, // Return token for Bearer auth
     });
   } catch (err) {
     console.error('Google auth error:', err);
@@ -174,7 +176,8 @@ const me = async (req, res) => {
       }
     }
 
-    res.json({ success: true, user: userData });
+    const token = signToken(userData);
+    res.json({ success: true, user: userData, token });
   } catch (err) { console.error('Error in ' + __filename + ':', err); res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
