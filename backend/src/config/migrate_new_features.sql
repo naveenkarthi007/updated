@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS hostels (
   id              INT AUTO_INCREMENT PRIMARY KEY,
   name            VARCHAR(100) NOT NULL UNIQUE,
   block_code      VARCHAR(20) DEFAULT NULL,
-  gender          ENUM('MALE','FEMALE','COED') DEFAULT 'COED',
+  gender          ENUM('MALE','FEMALE') DEFAULT 'MALE',
   total_rooms     INT DEFAULT 0,
   warden_id       INT DEFAULT NULL,
   created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,

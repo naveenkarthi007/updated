@@ -13,17 +13,16 @@ const securityHeaders = helmet({
 });
 
 // ── 2. Global Rate Limiter ────────────────────────────────────
-//    Max 200 requests per IP per 15-minute window.
-//    Covers every route as a blanket defense.
-//    Uses default keyGenerator which respects trust proxy for X-Forwarded-For.
+//    Adjusted for 10,000+ concurrent users potentially routing through shared campus IPs.
+//    Max 3000 requests per IP per 5-minute window.
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,       // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 200 : 2000, // higher in local dev
+  windowMs: 5 * 60 * 1000,       // 5 minutes
+  max: process.env.NODE_ENV === 'production' ? 3000 : 5000, // much higher for large user base
   standardHeaders: true,           // Return rate limit info in `RateLimit-*` headers
   legacyHeaders: false,            // Disable `X-RateLimit-*` headers
   message: {
     success: false,
-    message: 'Too many requests from this IP, please try again after 15 minutes.',
+    message: 'Too many requests from this IP, please try again after 5 minutes.',
   },
   skip: (req) => {
     // In development, don't throttle session-check polling and dev refreshes.
@@ -33,23 +32,23 @@ const globalLimiter = rateLimit({
 });
 
 // ── 3. Auth Route Limiter (Brute-force protection) ────────────
-//    Max 10 login attempts per IP per 15-minute window.
+//    Max 100 login attempts per IP per 5-minute window (shared NAT friendly).
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,       // 15 minutes
-  max: 10,                         // 10 attempts
+  windowMs: 5 * 60 * 1000,       // 5 minutes
+  max: 100,                         // 100 attempts
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
-    message: 'Too many login attempts. Please try again after 15 minutes.',
+    message: 'Too many login attempts. Please try again after 5 minutes.',
   },
 });
 
 // ── 4. API-Specific Limiter (stricter for write operations) ───
-//    Max 50 write requests (POST/PUT/DELETE) per IP per 15-minute window.
+//    Max 500 write requests (POST/PUT/DELETE) per IP per 5-minute window.
 const writeLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,       // 15 minutes
-  max: 50,                         // 50 write operations
+  windowMs: 5 * 60 * 1000,       // 5 minutes
+  max: 500,                         // 500 write operations
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: false,

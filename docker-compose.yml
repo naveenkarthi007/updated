@@ -36,7 +36,7 @@ services:
     build:
       context: ./frontend
       args:
-        REACT_APP_API_URL: http://localhost:5000/api
+        REACT_APP_API_URL: /api
     container_name: frontend_app
     restart: always
     ports:
