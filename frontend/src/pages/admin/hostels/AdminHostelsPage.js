@@ -32,6 +32,8 @@ function HostelModal({ hostel, wardens, onSave, onClose }) {
     try {
       await onSave({ ...form, total_rooms: Number(form.total_rooms) || 0, capacity: Number(form.capacity) || 0, warden_id: form.warden_id || null });
       onClose();
+    } catch (err) {
+      console.error('Save failed:', err);
     } finally { setSaving(false); }
   };
 
@@ -140,15 +142,20 @@ export default function AdminHostelsPage() {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const handleSave = async (form) => {
-    if (editHostel) {
-      await hostelsAPI.update(editHostel.id, form);
-      toast.success('Hostel updated!');
-    } else {
-      await hostelsAPI.create(form);
-      toast.success('Hostel added!');
+    try {
+      if (editHostel) {
+        await hostelsAPI.update(editHostel.id, form);
+        toast.success('Hostel updated!');
+      } else {
+        await hostelsAPI.create(form);
+        toast.success('Hostel added!');
+      }
+      setEditHostel(null);
+      fetchAll();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to save hostel');
+      throw err;
     }
-    setEditHostel(null);
-    fetchAll();
   };
 
   const handleDelete = async (id) => {
