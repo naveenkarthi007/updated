@@ -25,7 +25,7 @@ export default function RoomsPage() {
   const [modal, setModal] = useState(null);
   const [selected, setSelected] = useState(null);
   const [detail, setDetail] = useState(null);
-  const [form, setForm] = useState({ room_number: '', hostel_id: '', block: 'A', floor: 1, capacity: 3, room_type: 'triple' });
+  const [form, setForm] = useState({ room_number: '', hostel_id: '', block: 'A', floor: 1, capacity: 4, room_type: 'Quad' });
   const [saving, setSaving] = useState(false);
   const [view, setView] = useState('grid');
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);

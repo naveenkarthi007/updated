@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS rooms (
   block        ENUM('A','B','C','D') NOT NULL,
   floor        TINYINT NOT NULL DEFAULT 1,
   wing         ENUM('left','right') DEFAULT NULL,
-  capacity     TINYINT NOT NULL DEFAULT 3,
+  capacity     TINYINT NOT NULL DEFAULT 4,
   occupied     TINYINT NOT NULL DEFAULT 0,
   room_type    ENUM('single','double','triple','quad') DEFAULT 'single',
   status       ENUM('available','occupied','maintenance','reserved') DEFAULT 'available',
