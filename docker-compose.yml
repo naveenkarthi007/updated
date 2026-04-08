@@ -31,6 +31,7 @@ services:
       DB_NAME: hostel_mgmt
       JWT_SECRET: bannari_amman_hostel_super_secret_2026
       JWT_EXPIRES_IN: 7d
+      GOOGLE_CLIENT_ID: 181603728534-78tjb4gbu8p6olk8mtpqj2h2guls23vv.apps.googleusercontent.com
 
   frontend:
     build:
