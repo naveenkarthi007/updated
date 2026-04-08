@@ -20,9 +20,14 @@ export default function FloorWardenPage() {
         setHostels(mapped);
         if (mapped.length > 0) {
           setAssignmentBlock(mapped[0].block_code);
+        } else {
+          setAssignmentLoading(false);
         }
       })
-      .catch(() => toast.error('Failed to load hostels.'));
+      .catch(() => {
+        toast.error('Failed to load hostels.');
+        setAssignmentLoading(false);
+      });
   }, []);
 
   const loadAssignments = useCallback(() => {
@@ -85,18 +90,20 @@ export default function FloorWardenPage() {
       <SectionCard
         title="Floor Warden Assignment"
         description="Assign separate wardens for the left wing and right wing of a specific hostel and floor."
-        action={<Button size="sm" onClick={saveFloorWardens} loading={assignmentSaving}>Save Floor Wardens</Button>}
+        action={<Button size="sm" onClick={saveFloorWardens} loading={assignmentSaving} disabled={!assignmentBlock}>Save Floor Wardens</Button>}
       >
         <div className="space-y-4">
           <div className="flex flex-wrap gap-3">
-            <Select value={assignmentBlock} onChange={e => setAssignmentBlock(e.target.value)}>
-              {hostels.map((h) => (
+            <Select value={assignmentBlock} onChange={e => setAssignmentBlock(e.target.value)} disabled={!assignmentBlock}>
+              {hostels.length > 0 ? hostels.map((h) => (
                 <option key={h.id} value={h.block_code}>
                   {h.name}
                 </option>
-              ))}
+              )) : (
+                <option value="">No hostels available</option>
+              )}
             </Select>
-            <Select value={assignmentFloor} onChange={e => setAssignmentFloor(Number(e.target.value))}>
+            <Select value={assignmentFloor} onChange={e => setAssignmentFloor(Number(e.target.value))} disabled={!assignmentBlock}>
               {[1, 2, 3, 4, 5].map(f => <option key={f} value={f}>Floor {f}</option>)}
             </Select>
           </div>
@@ -110,6 +117,7 @@ export default function FloorWardenPage() {
                   label="Left Wing Warden"
                   value={wingAssignments.left}
                   onChange={e => setWingAssignments(current => ({ ...current, left: e.target.value }))}
+                  disabled={!assignmentBlock}
                 >
                   <option value="">Select warden</option>
                   {wardens.map(warden => (
@@ -121,6 +129,7 @@ export default function FloorWardenPage() {
                   label="Right Wing Warden"
                   value={wingAssignments.right}
                   onChange={e => setWingAssignments(current => ({ ...current, right: e.target.value }))}
+                  disabled={!assignmentBlock}
                 >
                   <option value="">Select warden</option>
                   {wardens.map(warden => (

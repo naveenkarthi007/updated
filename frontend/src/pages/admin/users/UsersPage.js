@@ -142,7 +142,7 @@ export default function UsersPage() {
       <Modal open={showForm} onClose={() => setShowForm(false)} title={editId ? "Edit User Profile" : "Register New User"} size="md">
          <form onSubmit={handleSubmit} className="space-y-4">
             <Input label="Full Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
-            <Input type="email" label="Email Address" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required />
+            <Input type="email" label="Email Address" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required autoComplete="username" />
             <Input type="password" label={editId ? "Password (leave blank to keep current)" : "Initial Password"} value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required={!editId} autoComplete="new-password" />
             
             <div className="pt-2">

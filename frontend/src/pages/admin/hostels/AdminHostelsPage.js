@@ -66,16 +66,18 @@ function HostelModal({ hostel, wardens, onSave, onClose }) {
               className="w-full rounded-xl border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
             />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Gender</label>
-            <select
-              value={form.gender}
-              onChange={e => setForm({ ...form, gender: e.target.value })}
-              className="w-full rounded-xl border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
-            >
-              <option value="MALE">Boys Hostel</option>
-              <option value="FEMALE">Girls Hostel</option>
-            </select>
+          <div className="grid grid-cols-1 mb-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Gender</label>
+              <select
+                value={form.gender}
+                onChange={e => setForm({ ...form, gender: e.target.value })}
+                className="w-full rounded-xl border border-brand-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+              >
+                <option value="MALE">Boys Hostel</option>
+                <option value="FEMALE">Girls Hostel</option>
+              </select>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
