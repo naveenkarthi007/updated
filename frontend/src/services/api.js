@@ -2,8 +2,9 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 
 /* eslint-disable no-undef */
+const isDev = process.env.NODE_ENV === 'development';
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || '/api',
+  baseURL: isDev ? 'http://localhost:5000/api' : '/api',
   timeout: 10000,
   withCredentials: true,
 });
