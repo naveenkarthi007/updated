@@ -156,7 +156,7 @@ export default function ComplaintsPage() {
                   <Badge variant="default" className="capitalize">{complaint.category}</Badge>
                 </div>
                 {complaint.description && <p className="text-xs text-brand-muted mb-1 line-clamp-2">{complaint.description}</p>}                  {complaint.image_url && (
-                    <a href={`${process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000'}${complaint.image_url}`} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-primary font-medium hover:underline mb-1 block">
+                    <a href={`${(process.env.REACT_APP_API_URL || '').replace(/(\/api)?$/, '')}${complaint.image_url}`} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-primary font-medium hover:underline mb-1 block">
                       View Attachment
                     </a>
                   )}                <div className="flex items-center gap-3 text-xs text-gray-400 flex-wrap">
