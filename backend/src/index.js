@@ -27,6 +27,9 @@ if (!process.env.JWT_SECRET) {
 // ── Trust proxy (required for rate limiting behind reverse proxies) ──
 app.set('trust proxy', 1);
 
+// ── CORS ──
+app.use(cors({ origin: true, credentials: true }));
+
 // ── Security Headers (Helmet) ──
 app.use(securityHeaders);
 
@@ -44,8 +47,6 @@ app.use((req, res, next) => {
   return requestSizeGuard(1 * 1024 * 1024)(req, res, next);
 });
 
-// ── CORS ──
-app.use(cors({ origin: true, credentials: true }));
 app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));

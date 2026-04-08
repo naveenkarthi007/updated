@@ -88,12 +88,10 @@ const googleLogin = async (req, res) => {
       if (rows.length) {
         await pool.query('UPDATE users SET google_id = ? WHERE id = ?', [googleId, rows[0].id]);
       } else {
-        // 3. Create new user
-        const [result] = await pool.query(
-          'INSERT INTO users (name, email, google_id, role) VALUES (?, ?, ?, ?)',
-          [name, email, googleId, 'student']
-        );
-        [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [result.insertId]);
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Account not found. Please contact an administrator to register your email before logging in.' 
+        });
       }
     }
 
