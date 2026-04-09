@@ -35,13 +35,13 @@ export default function StudentLeaveRequest() {
   };
 
   useEffect(() => {
+    if (user === null) return; // Wait for AuthContext to resolve
     if (user && user.student_id) {
        fetchLeaves();
-    } else if (user) {
+    } else {
        // User exists but has no linked student profile — stop the spinner
        setLoading(false);
     }
-    // eslint-disable-next-line
   }, [user]);
 
   const handleCreate = async (e) => {
