@@ -118,7 +118,8 @@ export default function StudentLeaveRequest() {
         )}
       </Card>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Apply for Leave">
+
+-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Apply for Leave">
         <form onSubmit={handleCreate} className="space-y-4">
           <div className="space-y-4">
             <div>

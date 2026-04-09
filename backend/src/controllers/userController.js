@@ -4,7 +4,7 @@ const { pool } = require('../config/database');
 const getAll = async (req, res) => {
   try {
     const { role, search, page = 1, limit = 20 } = req.query;
-    let where = '1=1';
+    let where = "role != 'student'";
     const params = [];
     if (role) { where += ' AND role=?'; params.push(role); }
     if (search) {
