@@ -28,7 +28,10 @@ if (!process.env.JWT_SECRET) {
 app.set('trust proxy', 1);
 
 // ── CORS ──
-app.use(cors({ origin: true, credentials: true }));
+app.use(cors({ 
+  origin: ['http://localhost:3000', 'https://naveen.hummingtone.com', 'http://naveen.hummingtone.com'], 
+  credentials: true 
+}));
 
 // ── Security Headers (Helmet) ──
 app.use(securityHeaders);
@@ -93,7 +96,7 @@ testConnection().then(() => {
     }
     console.error('Server error:', error);
   });
-  server.listen(PORT, () => {
-    console.log(`🚀 Hostel Management Server running on http://localhost:${PORT}`);
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Hostel Management Server running on http://0.0.0.0:${PORT}`);
   });
 });
