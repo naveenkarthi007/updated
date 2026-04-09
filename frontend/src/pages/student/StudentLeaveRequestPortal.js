@@ -184,36 +184,67 @@ export default function StudentLeaveRequestPortal() {
         )}
       </PanelShell>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Apply for Outpass" size="lg">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Apply for Leave" size="lg">
         <form onSubmit={handleCreate} className="grid gap-5">
+          <Select
+            label="Leave Type"
+            value={formData.leave_type}
+            onChange={event => setFormData(current => ({ ...current, leave_type: event.target.value }))}
+            required
+            className="h-14 rounded-[20px] bg-[#fbfbff] px-5"
+          >
+            {LEAVE_TYPE_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+
           <div className="grid gap-4 md:grid-cols-2">
-            <Select
-              label="Type of Leave"
-              value={formData.leave_type}
-              onChange={event => setFormData(current => ({ ...current, leave_type: event.target.value }))}
-              required
-              className="h-14 rounded-[20px] bg-[#fbfbff] px-5"
-            >
-              {LEAVE_TYPE_OPTIONS.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-            <Input type="date" label="From Date" required value={formData.from_date} onChange={event => setFormData(current => ({ ...current, from_date: event.target.value }))} className="h-14 rounded-[20px] bg-[#fbfbff] px-5" />
-            <Input type="date" label="To Date" required value={formData.to_date} onChange={event => setFormData(current => ({ ...current, to_date: event.target.value }))} className="h-14 rounded-[20px] bg-[#fbfbff] px-5" />
+            <Input 
+              type="datetime-local" 
+              label="From Date" 
+              required 
+              value={formData.from_date} 
+              onChange={event => setFormData(current => ({ ...current, from_date: event.target.value }))} 
+              className="h-14 rounded-[20px] bg-[#fbfbff] px-5" 
+            />
+            <Input 
+              type="datetime-local" 
+              label="To Date" 
+              required 
+              value={formData.to_date} 
+              onChange={event => setFormData(current => ({ ...current, to_date: event.target.value }))} 
+              className="h-14 rounded-[20px] bg-[#fbfbff] px-5" 
+            />
           </div>
-          <Textarea
-            label="Reason for Leave"
+
+          <Input
+            label="Remarks"
             required
             value={formData.reason}
             onChange={event => setFormData(current => ({ ...current, reason: event.target.value }))}
-            placeholder="Share the purpose of your leave request."
-            className="min-h-[140px] rounded-[20px] bg-[#fbfbff] px-5 py-4"
+            placeholder="Enter reason for leave"
+            className="h-14 rounded-[20px] bg-[#fbfbff] px-5 w-full"
           />
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} className="h-12 rounded-[18px] px-5">Cancel</Button>
-            <Button type="submit" loading={submitLoading} className="h-12 rounded-[18px] px-5">{submitLoading ? 'Submitting...' : 'Submit Request'}</Button>
+
+          <div className="flex gap-3 pt-2">
+            <Button 
+              type="button" 
+              variant="danger" 
+              onClick={() => setIsModalOpen(false)} 
+              className="flex-1 h-12 rounded-[18px] text-[15px] font-medium tracking-wide"
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              variant="primary" 
+              loading={submitLoading} 
+              className="flex-1 h-12 rounded-[18px] text-[15px] font-medium tracking-wide bg-[#7f56d9] hover:bg-[#6941c6]"
+            >
+              {submitLoading ? 'Submitting...' : 'Submit Leave Request'}
+            </Button>
           </div>
         </form>
       </Modal>

@@ -118,38 +118,60 @@ export default function StudentLeaveRequest() {
         )}
       </Card>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Apply for Outpass">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Apply for Leave">
         <form onSubmit={handleCreate} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Input 
-              type="date"
-              label="From Date" 
-              required 
-              value={formData.from_date} 
-              onChange={e => setFormData({...formData, from_date: e.target.value})} 
-            />
-            <Input 
-              type="date"
-              label="To Date" 
-              required 
-              value={formData.to_date} 
-              onChange={e => setFormData({...formData, to_date: e.target.value})} 
-            />
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Leave Type</label>
+              <select
+                required
+                className="w-full h-11 px-3 rounded-lg border-gray-300 shadow-sm focus:border-brand-primary focus:ring-brand-primary border"
+                // Assuming you have LEAVE_TYPE_OPTIONS or just use generic string state
+                onChange={e => setFormData({...formData, reason: 'Leave Type: ' + e.target.value + '\n' + formData.reason.split('\n').slice(1).join('\n')})}
+              >
+                <option value="OnDuty">OnDuty</option>
+                <option value="Leave">Leave</option>
+                <option value="Sick">Sick Leave</option>
+              </select>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <Input 
+                type="datetime-local"
+                label="From Date" 
+                required 
+                value={formData.from_date} 
+                onChange={e => setFormData({...formData, from_date: e.target.value})} 
+              />
+              <Input 
+                type="datetime-local"
+                label="To Date" 
+                required 
+                value={formData.to_date} 
+                onChange={e => setFormData({...formData, to_date: e.target.value})} 
+              />
+            </div>
+
+            <div>
+              <Input
+                label="Remarks"
+                required
+                type="text"
+                className="w-full h-11 px-3 rounded-lg border-gray-300 shadow-sm focus:border-brand-primary focus:ring-brand-primary border"
+                placeholder="Enter reason for leave"
+                value={formData.reason.split('\n').slice(1).join('\n') || formData.reason}
+                onChange={e => {
+                  const parts = formData.reason.split('\n');
+                  const header = parts[0] && parts[0].startsWith('Leave Type:') ? parts[0] + '\n' : '';
+                  setFormData({...formData, reason: header + e.target.value});
+                }}
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Leave</label>
-            <textarea
-              required
-              className="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-primary focus:ring-brand-primary min-h-[100px] p-3 border"
-              placeholder="Provide a valid reason for your leave request..."
-              value={formData.reason}
-              onChange={e => setFormData({...formData, reason: e.target.value})}
-            />
-          </div>
-          <div className="flex justify-end gap-3 mt-6">
-            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={submitLoading}>
-              {submitLoading ? 'Submitting...' : 'Submit Request'}
+          <div className="flex gap-3 mt-6">
+            <Button type="button" variant="danger" className="flex-1" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+            <Button type="submit" variant="primary" className="flex-1" disabled={submitLoading}>
+              {submitLoading ? 'Submitting...' : 'Submit Leave Request'}
             </Button>
           </div>
         </form>
